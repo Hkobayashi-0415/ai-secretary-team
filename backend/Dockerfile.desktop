@@ -1,0 +1,25 @@
+# Use common Dockerfile as base
+FROM ai-secretary-backend:common
+
+# デスクトップVM用の環境変数
+ENV DEBUG=true \
+    LOG_LEVEL=DEBUG \
+    PYTHONPATH=/app
+
+# 開発用の追加ツールをインストール
+RUN apt-get update && apt-get install -y \
+    vim \
+    git \
+    htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# 開発用のPythonパッケージを追加
+RUN pip install --no-cache-dir \
+    ipython \
+    ipdb \
+    black \
+    isort \
+    flake8
+
+# Run the application with reload
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"] 

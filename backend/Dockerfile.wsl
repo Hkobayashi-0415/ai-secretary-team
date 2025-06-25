@@ -1,0 +1,20 @@
+# Use common Dockerfile as base
+FROM ai-secretary-backend:common
+
+# WSL用の環境変数
+ENV DEBUG=false \
+    LOG_LEVEL=INFO \
+    PYTHONPATH=/app
+
+# 軽量化のための設定
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# 最小限のツールのみインストール
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Run the application (軽量設定)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"] 

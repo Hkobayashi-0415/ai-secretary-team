@@ -1,0 +1,24 @@
+# Use common Dockerfile as base
+FROM ai-secretary-frontend:common
+
+# デスクトップVM用の環境変数
+ENV NODE_ENV=development \
+    CHOKIDAR_USEPOLLING=true
+
+# 開発用の追加ツールをインストール
+RUN apk add --no-cache \
+    git \
+    vim \
+    curl
+
+# 開発用のnpmパッケージを追加
+RUN npm install -g \
+    nodemon \
+    typescript \
+    @types/node
+
+# 開発サーバー用の設定
+EXPOSE 3000
+
+# Start development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"] 

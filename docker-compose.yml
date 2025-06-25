@@ -1,0 +1,138 @@
+version: '3.8'
+
+volumes:
+  ai-secretary-postgres-data:
+    driver: local
+  ai-secretary-redis-data:
+    driver: local
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-secretary-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ai_secretary
+      POSTGRES_USER: ai_secretary_user
+      POSTGRES_PASSWORD: ai_secretary_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ai-secretary-postgres-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_secretary_user -d ai_secretary"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ai-secretary-network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: ai-secretary-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ai-secretary-redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-secretary-network
+
+  # Backend API (FastAPI + LangGraph)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-secretary-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ENVIRONMENT=development
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ai-secretary-network
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-secretary-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - ai-secretary-network
+
+  # Development frontend (for hot reload)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: ai-secretary-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - ai-secretary-network
+
+  # pgAdmin (Database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ai-secretary-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@ai-secretary.local
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - ./database/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - ai-secretary-network
+
+networks:
+  ai-secretary-network:
+    driver: bridge 

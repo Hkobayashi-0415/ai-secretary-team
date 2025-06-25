@@ -1,0 +1,69 @@
+version: '3.8'
+
+volumes:
+  ai-secretary-postgres-data:
+    driver: local
+  ai-secretary-redis-data:
+    driver: local
+
+services:
+  # PostgreSQL Database (共通)
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-secretary-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ai_secretary
+      POSTGRES_USER: ai_secretary_user
+      POSTGRES_PASSWORD: ai_secretary_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ai-secretary-postgres-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_secretary_user -d ai_secretary"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ai-secretary-network
+
+  # Redis for caching and session management (共通)
+  redis:
+    image: redis:7-alpine
+    container_name: ai-secretary-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ai-secretary-redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-secretary-network
+
+  # pgAdmin (Database management) (共通)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ai-secretary-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@ai-secretary.local
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - ./database/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - ai-secretary-network
+
+networks:
+  ai-secretary-network:
+    driver: bridge 
