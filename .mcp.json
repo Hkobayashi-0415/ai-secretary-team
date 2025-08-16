@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "cipher": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "start_cipher_cursor.bat"
+      ],
+      "env": {
+        "MCP_SERVER_MODE": "aggregator",
+        "AGGREGATOR_CONFLICT_RESOLUTION": "prefix",
+        "AGGREGATOR_TIMEOUT": "120000",
+        "CIPHER_SESSION_PERSIST_MEMORY": "true",
+        "CIPHER_MEMORY_ENABLE_LEARNING": "true",
+        "CIPHER_PROJECT_MEMORY": "true",
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
+    }
+  }
+}

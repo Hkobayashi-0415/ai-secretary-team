@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "cipher-aggregator": {
+      "type": "stdio",
+      "command": "C:\\Users\\sugar\\OneDrive\\デスクトップ\\ai-secretary-team-main\\cipher-source\\dist\\src\\app\\index.cjs",
+      "args": [
+        "--mode",
+        "mcp",
+        "--agent",
+        "C:\\Users\\sugar\\OneDrive\\デスクトップ\\ai-secretary-team-main\\cipher-source\\memAgent\\cipher.yml"
+      ],
+      "env": {
+        "MCP_SERVER_MODE": "aggregator",
+        "AGGREGATOR_CONFLICT_RESOLUTION": "prefix",
+        "AGGREGATOR_TIMEOUT": "120000",
+        "GEMINI_API_KEY": "your_gemini_api_key_here",
+        "OPENAI_API_KEY": "your_openai_api_key_here",
+        "ANTHROPIC_API_KEY": "your_anthropic_api_key_here"
+      }
+    }
+  }
+}

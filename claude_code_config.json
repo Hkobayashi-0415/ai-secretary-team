@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "cipher": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./tools/cipher-source/dist/src/app/index.cjs",
+        "--mode", "mcp",
+        "--agent", "./tools/cipher-source/memAgent/cipher.yml"
+      ],
+      "env": {
+        "MCP_SERVER_MODE": "aggregator",
+        "AGGREGATOR_CONFLICT_RESOLUTION": "prefix",
+        "AGGREGATOR_TIMEOUT": "120000",
+        "CIPHER_SESSION_PERSIST_MEMORY": "true",
+        "CIPHER_MEMORY_ENABLE_LEARNING": "true",
+        "CIPHER_PROJECT_MEMORY": "true",
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
+    }
+  }
+}
