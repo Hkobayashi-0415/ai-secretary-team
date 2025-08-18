@@ -27,10 +27,16 @@ case "$ENVIRONMENT" in
         ;;
 esac
 
-# 環境変数ファイルの存在確認
-if [ ! -f "$ENV_FILE" ]; then
-    echo "エラー: $ENV_FILE が見つかりません"
+# テンプレートファイルが存在するか確認
+if [ ! -f ".env.example" ]; then
+    echo "エラー: テンプレートファイル .env.example が見つかりません"
     exit 1
+fi
+
+# 環境ごとの設定ファイルが存在しない場合、テンプレートからコピーする
+if [ ! -f "$ENV_FILE" ]; then
+    echo "情報: $ENV_FILE が存在しないため、.env.example からコピーします"
+    cp ".env.example" "$ENV_FILE"
 fi
 
 # .envファイルの作成
@@ -43,7 +49,7 @@ echo "API設定の確認:"
 echo "=============="
 
 # Gemini APIキーの確認
-if grep -q "your_actual_gemini_api_key_here" .env; then
+if grep -q "your_gemini_api_key_here" .env; then
     echo "⚠️  警告: Gemini APIキーが設定されていません"
     echo "   .envファイルを編集してGEMINI_API_KEYを設定してください"
     echo ""
@@ -73,4 +79,4 @@ echo "次のコマンドで開発環境を起動できます："
 echo "  make dev-desktop  # デスクトップVM用"
 echo "  make dev-wsl      # WSL用"
 echo ""
-echo "注意: APIキーが正しく設定されていることを確認してください" 
+echo "注意: APIキーが正しく設定されていることを確認してください"

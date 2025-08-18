@@ -1,5 +1,17 @@
-# Use common Dockerfile as base
-FROM ai-secretary-frontend:common
+# 開発の土台として、NginxではなくNode.jsのイメージを使います
+FROM node:20-alpine
+
+# Set work directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# 開発用も含め、すべてのライブラリをインストールします
+RUN npm install
+
+# Copy source code
+COPY . .
 
 # デスクトップVM用の環境変数
 ENV NODE_ENV=development \
@@ -11,14 +23,8 @@ RUN apk add --no-cache \
     vim \
     curl
 
-# 開発用のnpmパッケージを追加
-RUN npm install -g \
-    nodemon \
-    typescript \
-    @types/node
-
 # 開発サーバー用の設定
 EXPOSE 3000
 
 # Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"] 
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
