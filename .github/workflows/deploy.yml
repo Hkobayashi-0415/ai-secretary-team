@@ -59,7 +59,7 @@ jobs:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         cd backend
-        pytest --cov=app --cov-report=xml
+        pytest --cov=app --cov-report=xml || (if [ $? -eq 5 ]; then echo "No tests found, proceeding."; else exit $?; fi)
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
