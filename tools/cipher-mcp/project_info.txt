@@ -1,0 +1,14 @@
+AI_codeプロジェクトについて記録します：
+
+このプロジェクトは「VIBE-KANBAN」という多AI協調開発システムの構築プロジェクトです。
+
+主な特徴：
+- 階層ペルソナシステム（中野五月等のキャラクター性格ベースAI制御）
+- 複数AIモデル統合（Claude + Gemini + その他）
+- React + FastAPI + SQLAlchemy アーキテクチャ
+- 4段階権限システム（OBSERVER → REVIEWER → SUPERVISOR → ADMIN）
+- Model Context Protocol（MCP）統合
+
+現在v3.1.0で、Phase 1&2（バックエンドAPI・React UI）完成済み。Phase 3で並列ワークフロー実行機能開発予定。
+
+このプロジェクト情報を記憶してください。

@@ -11,7 +11,7 @@ set AGGREGATOR_CONFLICT_RESOLUTION=prefix
 set AGGREGATOR_TIMEOUT=120000
 
 REM .envファイルからAPI KEYを読み込み
-for /f "tokens=1,2 delims==" %%a in ('findstr "GEMINI_API_KEY" cipher-source\.env') do (
+for /f "tokens=1,2 delims==" %%a in ('findstr "GEMINI_API_KEY" .env') do (
     set GEMINI_API_KEY=%%b
 )
 
@@ -22,14 +22,21 @@ echo - Conflict Resolution: %AGGREGATOR_CONFLICT_RESOLUTION%
 echo - Timeout: %AGGREGATOR_TIMEOUT%ms
 echo.
 
-REM Cursorから呼び出される場合のパス対応
-if exist "cipher-source\dist\src\app\index.cjs" (
-    cd cipher-source
+REM tools/cipher-mcpディレクトリに対応
+if exist "tools\cipher-mcp\dist\src\app\index.cjs" (
+    cd tools\cipher-mcp
+    node dist\src\app\index.cjs --mode mcp --agent memAgent\cipher.yml
+) else if exist "cipher-mcp\dist\src\app\index.cjs" (
+    cd cipher-mcp
     node dist\src\app\index.cjs --mode mcp --agent memAgent\cipher.yml
 ) else if exist ".\dist\src\app\index.cjs" (
     node dist\src\app\index.cjs --mode mcp --agent memAgent\cipher.yml
 ) else (
     echo Error: Cannot find Cipher executable
+    echo Searched paths:
+    echo - tools\cipher-mcp\dist\src\app\index.cjs
+    echo - cipher-mcp\dist\src\app\index.cjs
+    echo - .\dist\src\app\index.cjs
     pause
     exit /b 1
 )

@@ -79,26 +79,8 @@ CREATE INDEX idx_users_active ON users(is_active);
 CREATE INDEX idx_users_deleted ON users(deleted_at);
 ```
 
-#### 3.1.2 user_sessions（ユーザーセッション）
-```sql
-CREATE TABLE user_sessions (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id),
-    session_token VARCHAR(255) UNIQUE NOT NULL,
-    refresh_token VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    ip_address INET,
-    user_agent TEXT,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- インデックス
-CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
-CREATE INDEX idx_user_sessions_token ON user_sessions(session_token);
-CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
-```
+<!-- user_sessionsテーブルは削除済み -->
+<!-- ローカル・シングルユーザー環境ではセッション管理不要 -->
 
 ### 3.2 AI秘書管理
 
@@ -877,7 +859,7 @@ REINDEX TABLE messages;
 - 監査ログの強化
 
 ### 12.2 中期（6ヶ月以内）
-- マルチテナント対応
+- シングルユーザー対応（ローカル環境）
 - データアーカイブ機能
 - 分散データベース対応
 
@@ -966,13 +948,12 @@ class RedisConfig:
         )
 ```
 
-### 13.2 セッション管理設計
-
-#### 13.2.1 ユーザーセッション管理
+<!-- セッション管理設計は削除済み -->
+<!-- ローカル・シングルユーザー環境ではセッション管理不要 -->
 ```python
-# Redis キー設計: セッション管理
-# 形式: session:{user_id}:{session_id}
-# TTL: 24時間（86400秒）
+# Redis キー設計: キャッシュ専用（簡素化）
+# セッション管理は削除（ローカル環境では不要）
+# 形式: cache:{entity_type}:{entity_id}
 
 # セッションデータ構造
 session_data = {

@@ -67,25 +67,23 @@
 ### 3.1. プロジェクト構造の理解
 
 ```
-ai-secretary-team-main/
-├── agents/                          # Contains Studio専門エージェント定義
-│   ├── engineering/                 # 開発系エージェント
-│   ├── product/                     # プロダクト系エージェント
-│   ├── marketing/                   # マーケティング系エージェント
-│   ├── design/                      # デザイン系エージェント
-│   ├── project-management/          # プロジェクト管理系エージェント
-│   ├── studio-operations/           # スタジオ運営系エージェント
-│   ├── testing/                     # テスト系エージェント
-│   └── bonus/                       # ボーナスエージェント
+ai-secretary-team/
+├── docs/                            # 統合ドキュメント
+│   ├── 01-foundation/               # 基礎設計（要件・技術・DB・UI/UX）
+│   ├── 02-implementation/           # 実装関連（API・ガイド・テスト・デプロイ）
+│   ├── 03-github-original/          # GitHubオリジナル仕様
+│   ├── 04-templates/                # 各種テンプレート
+│   └── 05-archives/                 # アーカイブ（AI-Code情報含む）
+├── tools/                           # 開発ツール
+│   ├── studio-agents/               # Contains Studio専門エージェント定義
+│   └── cipher-mcp/                  # Cipher記憶システム
 ├── ai-secretary-team-main/          # メインプロジェクトルート
 │   ├── frontend/                    # React 18 + TypeScript + Vite
-│   ├── backend/                     # FastAPI + Python 3.11+
+│   ├── backend/                     # FastAPI + Python 3.12
 │   ├── database/                    # PostgreSQL 16 + Redis 7
-│   ├── docs/                        # プロジェクトドキュメント
-│   │   └── development-docs/        # 開発ドキュメント
 │   └── scripts/                     # 管理スクリプト
-├── cipher-source/                   # Cipher記憶システム
-└── work-logs/                       # 作業ログアーカイブ
+├── work-logs/                       # 作業ログアーカイブ
+└── data/                            # Cipherデータベース
 ```
 
 ### 3.2. 技術スタックの厳守
@@ -119,8 +117,8 @@ ai-secretary-team-main/
 
 2. **ultrathinkによる分析と調査**:
    - **cipher記憶確認**: 類似の課題や過去の決定事項をcipherで確認します。
-   - **自発的調査**: 関連するドキュメント（docs/development-docs/）、既存コード、過去の作業ログ（work-logs/）を調査し、技術的背景と影響範囲を把握します。
-   - **エージェント選定**: agents/ディレクトリから適切な専門エージェントを選択します。
+   - **自発的調査**: 関連するドキュメント（docs/01-foundation/、docs/02-implementation/）、既存コード、過去の作業ログ（work-logs/）を調査し、技術的背景と影響範囲を把握します。
+   - **エージェント選定**: tools/studio-agents/ディレクトリから適切な専門エージェントを選択します。
 
 3. **TodoWrite活用**: タスクを詳細なTodoリストに分解し、進捗を可視化します。
 
@@ -352,11 +350,12 @@ make clean
 
 ## 10. 関連ドキュメント
 
-- **プロジェクト概要**: `docs/development-docs/requirements/01-project-overview.md`
-- **技術仕様**: `docs/development-docs/technical/04-technical-specification.md`
-- **実装計画**: `docs/development-docs/implementation/01-implementation-plan.md`
-- **エージェント定義**: `agents/README.md`
+- **プロジェクト概要**: `docs/01-foundation/requirements/01-project-overview.md`
+- **技術仕様**: `docs/01-foundation/requirements/04-technical-specification.md`
+- **実装計画**: `docs/02-implementation/guides/01-implementation-plan.md`
+- **エージェント定義**: `tools/studio-agents/README.md`
 - **作業記録アーカイブ**: `work-logs/`
+- **AI-Code情報**: `docs/05-archives/LEGACY_AI_CODE_ARCHIVE.md`
 
 ---
 

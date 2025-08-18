@@ -80,7 +80,7 @@ AI_Secretary_Platform/
 #### 2.2.2 依存関係
 - **Python 3.11+**: ランタイム環境
 - **PostgreSQL**: データベースエンジン
-- **Redis**: キャッシュ・セッション管理
+- **Redis**: キャッシュ専用（オプション）
 - **Node.js**: フロントエンド実行環境
 
 ## 3. PyInstaller設定

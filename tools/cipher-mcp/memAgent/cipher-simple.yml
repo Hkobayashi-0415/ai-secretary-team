@@ -1,0 +1,28 @@
+# Simplified Cipher configuration for testing
+# Only memory functions, no external MCP servers
+
+mcpServers: {}
+
+# LLM Configuration
+llm:
+  provider: gemini
+  model: gemini-2.0-flash-exp
+  apiKey: ${GEMINI_API_KEY}
+  maxIterations: 50
+
+# Memory Configuration
+memory:
+  enabled: true
+  type: sqlite
+  path: ./data/cipher.db
+  
+# Vector Store Configuration  
+vectorStore:
+  type: in-memory
+  dimension: 1536
+
+# Session Configuration
+session:
+  persistMemory: true
+  enableLearning: true
+  projectMemory: true

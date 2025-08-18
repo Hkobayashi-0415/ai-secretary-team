@@ -1,0 +1,24 @@
+mcp_server:
+  port: 1337
+  host: 0.0.0.0
+  # http / https
+  protocol: http
+
+llm:
+  provider: ollama
+  model: gemma3:4b
+  baseURL: http://localhost:11434
+  maxIterations: 50
+
+embedding:
+  disabled: true
+
+# Session Management - Enable persistent memory
+sessions:
+  persistMemory: true    # Enable persistent memory across sessions
+  autoSave: true         # Automatically save session state
+
+# Memory Configuration
+memory:
+  enableLearning: true   # Learn from interactions
+  projectMemory: true    # Enable project-specific memory

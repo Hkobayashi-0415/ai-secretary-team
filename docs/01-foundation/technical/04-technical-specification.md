@@ -1,7 +1,8 @@
 # 技術仕様書：AI秘書チーム・プラットフォーム（統合版）
 
-* **ドキュメントバージョン:** v1.0
+* **ドキュメントバージョン:** v2.0
 * **作成日:** 2025年8月13日
+* **更新日:** 2025年8月17日
 * **目的:** AI秘書チーム・プラットフォームの統合版における技術的な実装仕様を定義する
 
 ---
@@ -14,7 +15,7 @@
 ### 1.2. 技術スタックの概要
 - **バックエンド**: FastAPI + Python 3.12
 - **フロントエンド**: React 18 + TypeScript + Vite
-- **データベース**: PostgreSQL 16 + Redis 7
+- **データベース**: PostgreSQL 16 + Redis 7（キャッシュ専用）
 - **AI統合**: LangGraph + Zen MCP Server
 - **知識管理**: Obsidian連携
 - **配布方式**: インストーラー（PyInstaller等）
@@ -77,7 +78,7 @@ graph TD
 
     subgraph Data Layer
         Postgres["🐘 PostgreSQL (Configs/Logs)"]
-        Redis["🔴 Redis (Cache/Session)"]
+        Redis["🔴 Redis (Cache Only)"]
         Obsidian["📖 Obsidian Vault"]
         File_System["💾 File System"]
     end
@@ -106,7 +107,7 @@ graph TD
     AI_Collab -- Stores --> Postgres
 
     Postgres -- Stores --> Configs & Logs
-    Redis -- Stores --> Cache & Session Data
+    Redis -- Stores --> Cache Data Only
     Obsidian -- Stores --> Knowledge & Notes
     File_System -- Stores --> Application Files
 ```
@@ -135,7 +136,7 @@ graph TD
 
 #### 2.2.3. データ層
 - **PostgreSQL 16**: 設定・ログ・履歴データ・AI協議・プラン承認
-- **Redis 7**: キャッシュ・セッション管理・一時データ
+- **Redis 7**: キャッシュ専用・パフォーマンス向上（オプション）
 - **Obsidian**: 知識・ノート・テンプレート
 - **ファイルシステム**: アプリケーションファイル・設定ファイル
 
@@ -191,11 +192,11 @@ passlib[bcrypt]>=1.7.4
 - **接続プール**: SQLAlchemy + asyncpg
 - **マイグレーション**: Alembic
 
-#### 3.3.2. Redis 7
+#### 3.3.2. Redis 7（オプション）
 - **バージョン**: 7（最新安定版）
-- **永続化**: AOF（Append Only File）
-- **セッション管理**: ユーザーセッション・AI状態
-- **キャッシュ**: 頻繁アクセスデータ・検索結果
+- **用途**: キャッシュ専用
+- **キャッシュ対象**: 頻繁アクセスデータ・検索結果・AI応答
+- **注**: なくても動作可能、パフォーマンス向上用
 
 ### 3.4. AI統合技術
 
@@ -237,9 +238,8 @@ passlib[bcrypt]>=1.7.4
 ## 5. セキュリティ要件
 
 ### 5.1. 認証・認可
-- **JWT認証**: トークンベース認証
-- **パスワード**: bcrypt（強力なハッシュ）
-- **セッション管理**: Redis + セキュアクッキー
+- **ローカル認証**: アプリ起動で自動接続
+- **パスワード**: ローカル環境では不要
 - **権限管理**: ロールベースアクセス制御
 
 ### 5.2. データ保護
@@ -290,7 +290,7 @@ passlib[bcrypt]>=1.7.4
 - **OS**: Windows 10+、macOS 10.15+、Ubuntu 18.04+
 - **Python**: 3.12（自動インストール）
 - **PostgreSQL**: 16（自動インストール・設定）
-- **Redis**: 7（自動インストール・設定）
+- **Redis**: 7（オプション、キャッシュ用）
 
 ### 7.3. 初期設定
 - **環境チェック**: 必要なソフトウェアの自動検出
@@ -345,6 +345,8 @@ passlib[bcrypt]>=1.7.4
 ---
 
 **作成日**: 2025-08-13  
-**作成者**: AI Assistant  
-**バージョン**: 1.0  
-**次回更新予定**: 2025-09-13 
+**更新日**: 2025-08-17  
+**作成者**: 中野五月（Claude Code）  
+**バージョン**: 2.0（統合版）  
+
+*注: 本ドキュメントはrequirements版とtechnical版を統合し、ローカル環境に最適化したものです。* 

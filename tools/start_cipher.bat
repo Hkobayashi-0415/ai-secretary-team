@@ -10,7 +10,7 @@ set AGGREGATOR_CONFLICT_RESOLUTION=prefix
 set AGGREGATOR_TIMEOUT=120000
 
 REM .envファイルからAPI KEYを読み込み
-for /f "tokens=1,2 delims==" %%a in ('findstr "GEMINI_API_KEY" cipher-source\.env') do (
+for /f "tokens=1,2 delims==" %%a in ('findstr "GEMINI_API_KEY" ..\..\.env') do (
     set GEMINI_API_KEY=%%b
 )
 
@@ -22,7 +22,7 @@ echo.
 echo サーバーを起動中...
 echo ------------------------------------------------
 
-cd cipher-source
+cd cipher-mcp
 node dist\src\app\index.cjs --mode mcp --agent memAgent\cipher.yml
 
 pause

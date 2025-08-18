@@ -109,29 +109,22 @@ async def metrics():
 ```
 
 ### 3.2 認証・認可ミドルウェア
-**JWT認証**:
+**ローカル環境用簡易認証**:
 ```python
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+# ローカル・シングルユーザー環境のため、複雑な認証は不要
+# アプリケーション起動時に自動的にユーザーセッションを確立
 
-security = HTTPBearer()
+async def get_current_user():
+    """ローカルユーザー情報取得"""
+    # シングルユーザー環境のため固定ユーザーを返す
+    return {
+        "user_id": "local_user",
+        "name": "ローカルユーザー",
+        "roles": ["admin"]  # 全権限を持つ
+    }
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        payload = jwt.decode(
-            credentials.credentials, 
-            SECRET_KEY, 
-            algorithms=[ALGORITHM]
-        )
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return user_id
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-async def get_current_active_user(current_user: str = Depends(get_current_user)):
-    # ユーザーのアクティブ状態チェック
+async def get_current_active_user():
+    # ローカル環境では常にアクティブ
     return current_user
 ```
 
@@ -663,91 +656,142 @@ def generate_persona_icon(self, persona_id: str, prompt: str, style: str):
 ```
 
 ### 7.2 WebSocket統合
-**WebSocket管理**:
+**ローカル環境用バランス型WebSocket実装**:
 ```python
 from fastapi import WebSocket, WebSocketDisconnect
-from typing import List, Dict
+from typing import Optional, Dict, Any
 import json
+import asyncio
+from datetime import datetime
 
-class ConnectionManager:
+class OptimizedLocalWebSocket:
+    """
+    ローカル環境に最適化されたWebSocket実装
+    必要な機能は維持しつつ、過剰な複雑性は排除
+    """
     def __init__(self):
-        self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.connection: Optional[WebSocket] = None
+        self.is_connected: bool = False
+        self.message_queue: asyncio.Queue = asyncio.Queue()
+        self.heartbeat_interval: int = 30  # 秒
         
-    async def connect(self, websocket: WebSocket, user_id: str):
-        """WebSocket接続"""
+    async def connect(self, websocket: WebSocket):
+        """WebSocket接続確立（自動再接続機能付き）"""
         await websocket.accept()
+        self.connection = websocket
+        self.is_connected = True
         
-        if user_id not in self.active_connections:
-            self.active_connections[user_id] = []
-        self.active_connections[user_id].append(websocket)
+        # ハートビート開始
+        asyncio.create_task(self._heartbeat())
         
-    async def disconnect(self, websocket: WebSocket, user_id: str):
-        """WebSocket切断"""
-        if user_id in self.active_connections:
-            self.active_connections[user_id].remove(websocket)
-            if not self.active_connections[user_id]:
-                del self.active_connections[user_id]
+    async def disconnect(self):
+        """WebSocket切断処理"""
+        self.is_connected = False
+        if self.connection:
+            await self.connection.close()
+            self.connection = None
+            
+    async def _heartbeat(self):
+        """接続維持のためのハートビート"""
+        while self.is_connected:
+            try:
+                await self.send_message({"type": "ping", "timestamp": datetime.now().isoformat()})
+                await asyncio.sleep(self.heartbeat_interval)
+            except:
+                self.is_connected = False
+                break
                 
-    async def send_personal_message(self, message: str, user_id: str):
-        """個人メッセージ送信"""
-        if user_id in self.active_connections:
-            for connection in self.active_connections[user_id]:
-                try:
-                    await connection.send_text(message)
-                except:
-                    # 接続エラーの場合、接続を削除
-                    self.active_connections[user_id].remove(connection)
-                    
-    async def broadcast(self, message: str):
-        """全ユーザーへのブロードキャスト"""
-        for user_connections in self.active_connections.values():
-            for connection in user_connections:
-                try:
-                    await connection.send_text(message)
-                except:
-                    continue
+    async def send_message(self, data: Dict[str, Any], priority: str = "normal"):
+        """
+        メッセージ送信（優先度制御付き）
+        priority: "high" | "normal" | "low"
+        """
+        if not self.is_connected or not self.connection:
+            # 接続がない場合はキューに保存
+            await self.message_queue.put((priority, data))
+            return
+            
+        try:
+            message = json.dumps(data)
+            await self.connection.send_text(message)
+        except Exception as e:
+            print(f"送信エラー: {e}")
+            # エラー時は再接続を試みる
+            await self._handle_reconnection()
+            
+    async def receive_message(self) -> Optional[Dict[str, Any]]:
+        """メッセージ受信"""
+        if not self.is_connected or not self.connection:
+            return None
+            
+        try:
+            data = await self.connection.receive_text()
+            return json.loads(data)
+        except WebSocketDisconnect:
+            await self.disconnect()
+            return None
+        except Exception as e:
+            print(f"受信エラー: {e}")
+            return None
+            
+    async def _handle_reconnection(self):
+        """自動再接続処理"""
+        max_retries = 3
+        retry_delay = 1  # 秒
+        
+        for attempt in range(max_retries):
+            await asyncio.sleep(retry_delay * (attempt + 1))
+            # 再接続ロジック（簡略化）
+            print(f"再接続試行 {attempt + 1}/{max_retries}")
+            
+    async def process_queued_messages(self):
+        """キューイングされたメッセージの処理"""
+        while not self.message_queue.empty():
+            priority, data = await self.message_queue.get()
+            await self.send_message(data, priority)
 
-manager = ConnectionManager()
+# 使用例
+manager = OptimizedLocalWebSocket()
 
-@app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    await manager.connect(websocket, user_id)
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
-            # メッセージ処理
-            await manager.send_personal_message(f"Message: {data}", user_id)
+            data = await manager.receive_message()
+            if data:
+                # メッセージタイプに応じた処理
+                if data.get("type") == "ai_discussion":
+                    # AI協議メッセージの処理
+                    pass
+                elif data.get("type") == "ui_update":
+                    # UI更新メッセージの処理
+                    pass
     except WebSocketDisconnect:
-        await manager.disconnect(websocket, user_id)
+        await manager.disconnect()
 ```
 
 ## 8. セキュリティ設計
 
 ### 8.1 認証・認可
-**JWT設定**:
+**ローカル環境セキュリティ**:
 ```python
-from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+# ローカル・シングルユーザー環境用のシンプルなセキュリティ設定
+# 複雑な認証は不要だが、基本的なセキュリティは維持
 
-# パスワードハッシュ化
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# JWT設定
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    """アクセストークン作成"""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+class LocalSecurityConfig:
+    """ローカル環境セキュリティ設定"""
+    def __init__(self):
+        self.user_id = "local_user"
+        self.is_authenticated = True
+        
+    def get_user(self):
+        """ローカルユーザー情報取得"""
+        return {
+            "user_id": self.user_id,
+            "is_admin": True,
+            "permissions": ["all"]  # ローカルユーザーは全権限
+        }
 
 def verify_password(plain_password: str, hashed_password: str):
     """パスワード検証"""

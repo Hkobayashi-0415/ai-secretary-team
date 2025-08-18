@@ -5,7 +5,7 @@
       "command": "cmd",
       "args": [
         "/c",
-        "start_cipher_cursor.bat"
+        "cd tools\\cipher-mcp && node dist\\src\\app\\index.cjs --mode mcp --agent memAgent\\cipher-simple.yml"
       ],
       "env": {
         "MCP_SERVER_MODE": "aggregator",

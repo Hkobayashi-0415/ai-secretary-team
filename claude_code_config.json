@@ -4,9 +4,9 @@
       "type": "stdio",
       "command": "node",
       "args": [
-        "./tools/cipher-source/dist/src/app/index.cjs",
+        "./tools/cipher-mcp/dist/src/app/index.cjs",
         "--mode", "mcp",
-        "--agent", "./tools/cipher-source/memAgent/cipher.yml"
+        "--agent", "./tools/cipher-mcp/memAgent/cipher-simple.yml"
       ],
       "env": {
         "MCP_SERVER_MODE": "aggregator",
