@@ -86,20 +86,24 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Build and push Docker images
+          - name: Build and push Docker images
       run: |
+        # Convert repository name to lowercase
+        IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+        
         # Build common images
-        docker build -f backend/Dockerfile.common -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:common ./backend
-        docker build -f frontend/Dockerfile.common -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:common ./frontend
+        docker build -f backend/Dockerfile.common -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:common ./backend
+        docker build -f frontend/Dockerfile.common -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:common ./frontend
         
         # Build production images
-        docker build -f backend/Dockerfile.production -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest ./backend
-        docker build -f frontend/Dockerfile.production -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest ./frontend
+        docker build -f backend/Dockerfile.production -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:latest ./backend
+        docker build -f frontend/Dockerfile.production -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:latest ./frontend
         
         # Push images
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:common
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:common
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:common
+        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:common
+        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:latest
+        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:latest
 
   deploy:
     needs: build-and-push
