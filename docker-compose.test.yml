@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  postgres_test:
+    image: postgres:16-alpine
+    container_name: ai-secretary-postgres-test
+    environment:
+      POSTGRES_DB: ai_secretary_test
+      POSTGRES_USER: ai_secretary_user
+      POSTGRES_PASSWORD: ai_secretary_password
+    ports:
+      - "5433:5432"
+
+  backend_test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.desktop
+    container_name: ai-secretary-backend-test
+    command: ["pytest", "-v"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test
+      - ENVIRONMENT=test
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres_test
