@@ -1,73 +1,66 @@
 import pytest
-import asyncio
-from typing import AsyncGenerator, Generator
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from fastapi import status
+import uuid
+from app.models.models import User
 
-from app.main import app
-from app.core.database import get_async_db
-from app.models.models import Base
+pytestmark = pytest.mark.asyncio
 
-# テスト用のデータベースURL
-TEST_DATABASE_URL = "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test"
-
-engine = create_async_engine(TEST_DATABASE_URL)
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-)
-
-# --- Fixtureの再構築 ---
-
-@pytest.fixture(scope="session")
-def event_loop(request) -> Generator:
-    """テストセッション全体で一つのイベントループを作成する"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-@pytest.fixture(scope="function")
-async def db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    テストごとに、まっさらなデータベースとセッションを提供するFixture
-    """
-    # テストの前に、すべてのテーブルを作成
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    # テストにDBセッションを渡す
-    async with TestingSessionLocal() as session:
-        yield session
-
-    # テストの後に、すべてのテーブルを削除
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-
-@pytest.fixture(scope="function")
-async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """
-    テスト用のAPIクライアントを提供するFixture
-    """
-    # アプリケーションのDB接続を、テスト用DBに向ける
-    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        yield db
-
-    app.dependency_overrides[get_async_db] = override_get_db
-
-    # テスト用のクライアントを生成
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
+# 正常系のテスト
+async def test_create_and_read_assistant(client: AsyncClient, db):
+     # 0. テストの最初に、アシスタントのご主人様となるデフォルトユーザーを作成する
+    default_user_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    default_user = User(
+        id=default_user_id,
+        username="test_user",
+        email="test@example.com",
+        password_hash="test",
+        is_active=True,
+        is_verified=True
+    )
+    db.add(default_user)
+    await db.commit()
     
-    # テストが終わったらオーバーライドを元に戻す
-    app.dependency_overrides.clear()
+    # 1. 最初はアシスタントがいないことを確認
+    response = await client.get("/api/v1/assistants/")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == []
 
+    # 2. 新しいアシスタントを作成する
+    new_assistant_data = {
+        "name": "Test Assistant for Pytest",
+        "description": "This is a test assistant created via API test."
+    }
+    response = await client.post("/api/v1/assistants/", json=new_assistant_data)
+    
+    # 3. 作成が成功したかを確認
+    assert response.status_code == status.HTTP_200_OK
+    created_assistant = response.json()
+    assert created_assistant["name"] == new_assistant_data["name"]
+    assert "id" in created_assistant
 
-# --- 実際のテストケース ---
+    # 4. 一覧に、作成したアシスタントが1件だけ存在することを確認
+    response = await client.get("/api/v1/assistants/")
+    assert response.status_code == status.HTTP_200_OK
+    assistants_list = response.json()
+    assert len(assistants_list) == 1
+    assert assistants_list[0]["name"] == new_assistant_data["name"]
 
-@pytest.mark.asyncio
-async def test_health_check(client: AsyncClient):
-    """ヘルスチェックエンドポイントのテスト"""
-    response = await client.get("/health")
-    assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+# --- ▼ ここからが意地悪なテストです ▼ ---
+
+# テストケース1: 名前のないアシスタント
+async def test_create_assistant_with_no_name_fails(client: AsyncClient):
+    response = await client.post("/api/v1/assistants/", json={"description": "No name here"})
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+# テストケース2: 名前が長すぎるアシスタント
+async def test_create_assistant_with_long_name_fails(client: AsyncClient):
+    long_name = "a" * 101
+    response = await client.post("/api/v1/assistants/", json={"name": long_name})
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+# テストケース3: 存在しないアシスタントの更新 (これは将来の機能のためのテストです)
+# async def test_update_nonexistent_assistant_fails(client: AsyncClient):
+#     non_existent_id = uuid.uuid4()
+#     response = await client.put(f"/api/v1/assistants/{non_existent_id}", json={"name": "ghost"})
+#     assert response.status_code == status.HTTP_404_NOT_FOUND
