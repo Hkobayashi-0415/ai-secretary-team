@@ -17,14 +17,22 @@ const HomePage: React.FC = () => (
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router future={{ 
+        v7_startTransition: true,
+        v7_relativeSplatPath: true 
+      }}>
         <Layout>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/assistants" element={<AssistantsPage />} />
+            {/* <Route path="*" element={<NotFoundPage />} /> 
+              将来的に「v7_relativeSplatPath」の警告に対応するために、
+              このような「*」を使ったルートも考慮に入れておくと良いですね。
+            */}
           </Routes>
         </Layout>
       </Router>
+
     </QueryClientProvider>
   );
 };

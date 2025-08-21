@@ -17,6 +17,10 @@ services:
       - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
       - DEBUG=true
       - LOG_LEVEL=DEBUG
+      - DB_HOST=postgres
+      - DB_USER=ai_secretary_user
+      - DB_NAME=ai_secretary
+      - POSTGRES_PASSWORD=ai_secretary_password
     volumes:
       - ./backend:/app
       - /app/__pycache__
@@ -26,6 +30,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        cd /app &&
+        alembic upgrade head &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+      "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -98,3 +110,6 @@ services:
         reservations:
           memory: 512M
           cpus: '0.25' 
+networks:
+  ai-secretary-network:
+    driver: bridge
