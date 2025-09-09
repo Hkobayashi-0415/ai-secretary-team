@@ -68,8 +68,8 @@ jobs:
           # 先に upgrade を試す（新規DBならこれでテーブル作成）
           # もし init スクリプト等で既にテーブルがある場合は失敗するので、
           # その時は Alembic のバージョンだけを「適用済み」に刻む（stamp head）
-    docker compose run --rm backend alembic upgrade head || \
-    docker compose run --rm backend alembic stamp head
+          docker compose run --rm backend alembic upgrade head || \
+          docker compose run --rm backend alembic stamp head
 
       # ❺ API/フロント起動
       - name: Start app services
