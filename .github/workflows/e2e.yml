@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ❶ CI用に .env を生成（鍵は空でOK／検証スキップ）
+      # ❶ CI用 .env を生成（鍵は空／検証スキップ）
       - name: Create .env for CI
         run: |
           cat > .env <<'EOF'
@@ -47,19 +47,26 @@ jobs:
       - name: Start app stack
         run: docker compose up -d --build
 
-      # ❸ ヘルスチェック待ち（API と Frontend）
+      # ❸ サービス待機（余裕長め）
       - name: Wait for services (health & UI)
         run: |
-          for i in {1..60}; do
+          for i in {1..120}; do
             (curl -fsS http://localhost:8000/health >/dev/null) && \
-            (curl -fsS http://localhost:3000     >/dev/null) && break
-            echo "Waiting for services... ($i/60)"; sleep 2
+            (curl -fsS http://localhost:3000      >/dev/null) && break
+            echo "Waiting for services... ($i/120)"; sleep 3
           done
-          # 最終チェック（失敗ならログを出しやすくするために明示エラー）
           curl -f http://localhost:8000/health
           curl -f http://localhost:3000
 
-      # ❹ Node & Playwright をホスト側に用意（テストはホストで実行）
+      # ❹ DBマイグレーション（これが無いと 500/テーブル無し で落ちがち）
+      - name: Run DB migrations
+        run: docker compose exec -T backend alembic upgrade head
+
+      # ❺ APIの基本疎通を1回だけ確認（JSON配列が返ればOK）
+      - name: Smoke check API
+        run: curl -f http://localhost:8000/api/v1/assistants/
+
+      # ❻ Node & Playwright をセットアップ（テストはホスト側で実行）
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -71,12 +78,12 @@ jobs:
           npm ci
           npx playwright install --with-deps
 
-      # ❺ E2E 実行
+      # ❼ E2E 実行
       - name: Run Playwright tests
         working-directory: frontend
         run: npm run test:e2e
 
-      # ❻ 失敗時の調査用ログ
+      # ❽ 失敗時ログ収集
       - name: Docker logs (on failure)
         if: failure()
         run: docker compose logs --no-color > docker-logs.txt
