@@ -8,12 +8,10 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ❶ CI用 .env を生成（鍵は空／検証スキップ）
       - name: Create .env for CI
         run: |
           cat > .env <<'EOF'
@@ -28,7 +26,8 @@ jobs:
           ENVIRONMENT=development
           DEBUG=true
           SECRET_KEY=ci-secret
-          CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+          # ★ フロントのOriginは http://frontend になるので追加
+          CORS_ORIGINS=http://frontend,http://localhost:3000,http://localhost:5173
           MAX_FILE_SIZE=10485760
           UPLOAD_DIR=./uploads
           LOG_LEVEL=INFO
@@ -43,11 +42,16 @@ jobs:
           EOF
           mkdir -p uploads logs
 
-      # ❷ 必要サービスのみビルド（override を併用）
+      # 画像をビルド（CI用override併用 & フロントに API 基点を注入）
       - name: Build images
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend frontend postgres redis
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build postgres redis
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
+            --build-arg VITE_API_URL=http://backend:8000 frontend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build e2e
 
-      # ❸ まず DB/Redis だけ先に起動してヘルス待ち
+      # まず DB/Redis 起動 → ヘルス待ち
       - name: Start database layer
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d postgres redis
 
@@ -62,35 +66,39 @@ jobs:
           done
           docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
-      # ❹ マイグレーションを先に実行（バックエンド起動前）
+      # マイグレーション（スキーマ既存なら stamp で整合）
       - name: Migrate DB (upgrade or stamp if schema already exists)
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head || \
           docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic stamp head
 
-      # ❺ API/フロント起動
+      # バックエンド＆フロント起動（ホスト公開なし）
       - name: Start app services
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend frontend
 
-      # ❻ API/フロント疎通待ち（/health と :3000）
-      - name: Wait for services (health & UI)
-        run: |
-          for i in {1..120}; do
-            (curl -fsS http://localhost:8000/health >/dev/null) && \
-            (curl -fsS http://localhost:3000      >/dev/null) && break
-            echo "Waiting for services... ($i/120)"; sleep 3
-          done
-          curl -f http://localhost:8000/health
-          curl -f http://localhost:3000
+      # E2E をコンテナ内で実行（内部ネットワークで http://frontend を叩く）
+      - name: Run Playwright tests in container
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm e2e
 
-      # ❼ Node & Playwright をホスト側で用意
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # ログ・レポート保存
+      - name: Docker ps & logs (always)
+        if: always()
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-logs.txt || true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 20
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
 
-      - name: Install deps and Playwright
-        working-directory: frontend
-        run: |
-          npm ci
-          npx playwright install --wi
+      - name: Upload docker logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-logs
+          path: docker-logs.txt
+          retention-days: 7

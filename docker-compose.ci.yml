@@ -1,6 +1,32 @@
 # docker-compose.ci.yml
 services:
+  backend:
+    # ホスト公開しない（内部ネットワークで 8000 を見せる）
+    expose:
+      - "8000"
+
   frontend:
-    # Nginxが80で待ち受け → ホストの3000へ公開
-    ports:
-      - "3000:80"
+    # Nginx は 80 待ち受け。ホスト公開しない
+    expose:
+      - "80"
+
+  e2e:
+    # Playwright 実行用コンテナ
+    image: mcr.microsoft.com/playwright:v1.47.2-jammy
+    working_dir: /workspace/frontend
+    volumes:
+      - ./frontend:/workspace/frontend
+    environment:
+      PLAYWRIGHT_BASE_URL: http://frontend
+      API_BASE_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    entrypoint: >
+      bash -lc "
+        npm ci &&
+        npx playwright install --with-deps &&
+        npm run test:e2e
+      "

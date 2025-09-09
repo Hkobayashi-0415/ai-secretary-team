@@ -1,32 +1,23 @@
 # Build stage
 FROM node:20-alpine AS builder
-
-# Set work directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
+# devDeps 必須（tsc/vite 用）
 RUN npm ci
 
-# Copy source code
-COPY . .
+# ★ ここで API 基点を受け取る（デフォルトはローカル）
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=${VITE_API_URL}
 
-# Build the application
+COPY . .
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine
+# Nginx は 80 で待受け
+EXPOSE 80
 
-# Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
-
-# Expose port
-EXPOSE 3000
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]
