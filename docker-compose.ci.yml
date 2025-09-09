@@ -1,0 +1,6 @@
+# docker-compose.ci.yml
+services:
+  frontend:
+    # Nginxが80で待ち受け → ホストの3000へ公開
+    ports:
+      - "3000:80"

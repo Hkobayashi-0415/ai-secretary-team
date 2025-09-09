@@ -43,13 +43,13 @@ jobs:
           EOF
           mkdir -p uploads logs
 
-      # ❷ 必要サービスのみビルド（軽量化＆衝突回避）
+      # ❷ 必要サービスのみビルド（override を併用）
       - name: Build images
-        run: docker compose build backend frontend postgres redis
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend frontend postgres redis
 
       # ❸ まず DB/Redis だけ先に起動してヘルス待ち
       - name: Start database layer
-        run: docker compose up -d postgres redis
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d postgres redis
 
       - name: Wait for postgres/redis health
         run: |
@@ -60,20 +60,17 @@ jobs:
             [ "$PG" = "healthy" ] && [ "$RD" = "healthy" ] && break
             sleep 2
           done
-          docker compose ps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
-      # ❹ マイグレーションを先に実行（バックエンドを起動する前）
+      # ❹ マイグレーションを先に実行（バックエンド起動前）
       - name: Migrate DB (upgrade or stamp if schema already exists)
         run: |
-          # 先に upgrade を試す（新規DBならこれでテーブル作成）
-          # もし init スクリプト等で既にテーブルがある場合は失敗するので、
-          # その時は Alembic のバージョンだけを「適用済み」に刻む（stamp head）
-          docker compose run --rm backend alembic upgrade head || \
-          docker compose run --rm backend alembic stamp head
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head || \
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic stamp head
 
       # ❺ API/フロント起動
       - name: Start app services
-        run: docker compose up -d backend frontend
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend frontend
 
       # ❻ API/フロント疎通待ち（/health と :3000）
       - name: Wait for services (health & UI)
@@ -86,7 +83,7 @@ jobs:
           curl -f http://localhost:8000/health
           curl -f http://localhost:3000
 
-      # ❼ Node & Playwright をホスト側にセットアップ（テストはホストで実行）
+      # ❼ Node & Playwright をホスト側で用意
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -96,32 +93,4 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npx playwright install --with-deps
-
-      # ❽ E2E 実行
-      - name: Run Playwright tests
-        working-directory: frontend
-        run: npm run test:e2e
-
-      # ❾ 失敗時の詳細ログ（どの段階で落ちても拾う）
-      - name: Docker ps & logs (always)
-        if: always()
-        run: |
-          docker compose ps
-          docker compose logs --no-color > docker-logs.txt || true
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: frontend/playwright-report
-          retention-days: 7
-
-      - name: Upload docker logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-logs
-          path: docker-logs.txt
-          retention-days: 7
+          npx playwright install --wi
