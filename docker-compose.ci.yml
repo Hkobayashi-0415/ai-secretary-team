@@ -4,11 +4,22 @@ services:
     # ホスト公開しない（内部ネットワークで 8000 を見せる）
     expose:
       - "8000"
+    # ← backend の /health を見て「起動した」と判定できるようにする
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
 
   frontend:
-    # Nginx は 80 待ち受け。ホスト公開しない
+    # Nginx は 80 待受け。ホスト公開しない
     expose:
       - "80"
+    # backend が起動してから立ち上げ（API先の解決を安定化）
+    depends_on:
+      backend:
+        condition: service_healthy
 
   e2e:
     # Playwright 実行用コンテナ
@@ -19,14 +30,26 @@ services:
     environment:
       PLAYWRIGHT_BASE_URL: http://frontend
       API_BASE_URL: http://backend:8000
+      CI: "true"
+    # 同じネットワークで起動順も保証
     depends_on:
       backend:
         condition: service_healthy
       frontend:
         condition: service_started
+    # DNS解決を確実にするための保険（サービス名エイリアス付与）
+    links:
+      - frontend
+      - backend
+    # 明示的にデフォルトネットワークへ
+    networks:
+      - default
     entrypoint: >
       bash -lc "
         npm ci &&
         npx playwright install --with-deps &&
         npm run test:e2e
       "
+
+networks:
+  default: {}
