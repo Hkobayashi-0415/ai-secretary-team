@@ -1,34 +1,33 @@
-# docker-compose.ci.yml
+# docker-compose.ci.yml（置き換え）
 services:
   backend:
-    # 内部向けに 8000 を見せるだけ（ホスト公開は不要）
     expose:
       - "8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-      start_period: 10s
-    # ← networks を書かない = ベースの ai-secretary-network をそのまま継承
+    networks:
+      - ai-secretary-network
 
   frontend:
+    # アプリ側のまま（nginx.conf が listen 3000 のままでOK）
     expose:
-      - "80"
+      - "3000"
     depends_on:
       backend:
         condition: service_healthy
-    # ← networks を書かない = ベースの ai-secretary-network を継承
+    networks:
+      - ai-secretary-network
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.47.2-jammy
+    # ★ フロントと同じネットワーク名前空間を共有 → DNS不要・localhostで到達
+    network_mode: "service:frontend"
     working_dir: /workspace/frontend
     volumes:
       - ./frontend:/workspace/frontend
     environment:
-      # E2E からは http://frontend （80）で到達
-      PLAYWRIGHT_BASE_URL: http://frontend
-      # フロント→API は http://backend:8000 で到達
+      # ★ ここを localhost:3000 に固定（← 今は frontend になっている）
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
       API_BASE_URL: http://backend:8000
       CI: "true"
     depends_on:
@@ -36,9 +35,6 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
-    # 本体ネットワークに参加
-    networks:
-      - ai-secretary-network
     entrypoint: >
       bash -lc "
         npm ci &&
@@ -46,4 +42,6 @@ services:
         npm run test:e2e
       "
 
-# ここで networks を新規定義しない（ベースの ai-secretary-network をそのまま使う）
+networks:
+  ai-secretary-network:
+    external: false
