@@ -1,28 +1,29 @@
 # docker-compose.ci.yml
 services:
   backend:
-    # ホスト公開しない（内部ネットワークで 8000 を見せる）
     expose:
       - "8000"
-    # ← backend の /health を見て「起動した」と判定できるようにする
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s
       timeout: 3s
       retries: 30
       start_period: 10s
+    networks:
+      ci:
+        aliases: [backend]
 
   frontend:
-    # Nginx は 80 待受け。ホスト公開しない
     expose:
       - "80"
-    # backend が起動してから立ち上げ（API先の解決を安定化）
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      ci:
+        aliases: [frontend]
 
   e2e:
-    # Playwright 実行用コンテナ
     image: mcr.microsoft.com/playwright:v1.47.2-jammy
     working_dir: /workspace/frontend
     volumes:
@@ -31,19 +32,18 @@ services:
       PLAYWRIGHT_BASE_URL: http://frontend
       API_BASE_URL: http://backend:8000
       CI: "true"
-    # 同じネットワークで起動順も保証
     depends_on:
       backend:
         condition: service_healthy
       frontend:
         condition: service_started
-    # DNS解決を確実にするための保険（サービス名エイリアス付与）
+    # ↓ DNSをより確実に（保険）
     links:
       - frontend
       - backend
-    # 明示的にデフォルトネットワークへ
     networks:
-      - default
+      ci:
+        aliases: [e2e]
     entrypoint: >
       bash -lc "
         npm ci &&
@@ -52,4 +52,4 @@ services:
       "
 
 networks:
-  default: {}
+  ci: {}
