@@ -1,6 +1,7 @@
 # docker-compose.ci.yml
 services:
   backend:
+    # 内部向けに 8000 を見せるだけ（ホスト公開は不要）
     expose:
       - "8000"
     healthcheck:
@@ -9,9 +10,7 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-    networks:
-      ci:
-        aliases: [backend]
+    # ← networks を書かない = ベースの ai-secretary-network をそのまま継承
 
   frontend:
     expose:
@@ -19,9 +18,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    networks:
-      ci:
-        aliases: [frontend]
+    # ← networks を書かない = ベースの ai-secretary-network を継承
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.47.2-jammy
@@ -29,7 +26,9 @@ services:
     volumes:
       - ./frontend:/workspace/frontend
     environment:
+      # E2E からは http://frontend （80）で到達
       PLAYWRIGHT_BASE_URL: http://frontend
+      # フロント→API は http://backend:8000 で到達
       API_BASE_URL: http://backend:8000
       CI: "true"
     depends_on:
@@ -37,13 +36,9 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
-    # ↓ DNSをより確実に（保険）
-    links:
-      - frontend
-      - backend
+    # 本体ネットワークに参加
     networks:
-      ci:
-        aliases: [e2e]
+      - ai-secretary-network
     entrypoint: >
       bash -lc "
         npm ci &&
@@ -51,5 +46,4 @@ services:
         npm run test:e2e
       "
 
-networks:
-  ci: {}
+# ここで networks を新規定義しない（ベースの ai-secretary-network をそのまま使う）

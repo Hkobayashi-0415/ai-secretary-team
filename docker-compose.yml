@@ -97,7 +97,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai-secretary-frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
       - VITE_API_URL=http://localhost:8000
       - NODE_ENV=development
