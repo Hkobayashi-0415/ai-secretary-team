@@ -1,9 +1,9 @@
 # backend/app/schemas/assistant.py
 import uuid
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class AssistantBase(BaseModel):
@@ -28,7 +28,7 @@ class AssistantUpdate(AssistantBase):
 
 
 class AssistantUpdateFinal(BaseModel):
-    """最終版：全フィールド Optional の更新スキーマ"""
+    """最終版：全フィールドOptionalの更新スキーマ"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     default_llm_model: Optional[str] = Field(None, max_length=100)
@@ -37,13 +37,10 @@ class AssistantUpdateFinal(BaseModel):
     voice_id: Optional[uuid.UUID] = None
     avatar_id: Optional[uuid.UUID] = None
 
-    @model_validator(mode="before")
+    @field_validator("*", mode="before")
     @classmethod
-    def empty_str_to_none(cls, data: Any):
-        """空文字列を None に変換（v2 互換の一括前処理）"""
-        if isinstance(data, dict):
-            return {k: (None if v == "" else v) for k, v in data.items()}
-        return data
+    def empty_str_to_none(cls, v):
+        return None if isinstance(v, str) and v == "" else v
 
 
 class Assistant(AssistantBase):

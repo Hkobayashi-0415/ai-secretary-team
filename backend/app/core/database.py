@@ -1,22 +1,30 @@
 # backend/app/core/database.py
+import os
+import logging
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
-import sys 
 
-# --- 診断コード ---
-# アプリケーションが実際に認識しているDATABASE_URLを、起動時にコンソールへ出力させます。
-# これで、環境変数が正しく渡っているかを確実に確認できます。
-print("="*50, file=sys.stderr)
-print(f"DEBUG: Attempting to connect with DATABASE_URL:", file=sys.stderr)
-print(f"'{settings.DATABASE_URL}'", file=sys.stderr)
-print("="*50, file=sys.stderr)
-# --- 診断コードここまで ---
+logger = logging.getLogger(__name__)
+
+def _mask_db_url(url: str) -> str:
+    try:
+        if "://" not in url or "@" not in url:
+            return "***"
+        scheme, rest = url.split("://", 1)
+        _, after_at = rest.split("@", 1)
+        return f"{scheme}://***@{after_at}"
+    except Exception:
+        return "***"
+
+# 必要なときだけDB URLをDEBUGで出す（マスク付き）
+if os.getenv("PRINT_DB_URL", "0") == "1":
+    logger.debug("Connecting DB: %s", _mask_db_url(settings.DATABASE_URL))
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,
-    future=True
+    echo=os.getenv("SQLALCHEMY_ECHO", "0") == "1",
+    future=True,
 )
 
 AsyncSessionLocal = sessionmaker(
