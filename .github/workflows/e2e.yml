@@ -1,104 +1,87 @@
-name: E2E (Playwright)
+name: e2e
 
 on:
   push:
     branches: [ main ]
   pull_request:
 
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      # Backend が要求するがテストでは未使用なのでダミーでOK
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'dummy' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create .env for CI
+      - name: Show Docker versions
         run: |
-          cat > .env <<'EOF'
-          GEMINI_API_KEY=
-          GOOGLE_SEARCH_API_KEY=
-          OPENAI_API_KEY=
-          DATABASE_URL=postgresql://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
-          POSTGRES_DB=ai_secretary
-          POSTGRES_USER=ai_secretary_user
-          POSTGRES_PASSWORD=ai_secretary_password
-          REDIS_URL=redis://redis:6379
-          ENVIRONMENT=development
-          DEBUG=true
-          SECRET_KEY=ci-secret
-          # ★ フロントのOriginは http://frontend になるので追加
-          CORS_ORIGINS=http://frontend,http://localhost:3000,http://localhost:5173
-          MAX_FILE_SIZE=10485760
-          UPLOAD_DIR=./uploads
-          LOG_LEVEL=INFO
-          LOG_FILE=./logs/app.log
-          VOICE_ENABLED=false
-          DEFAULT_VOICE_PROVIDER=google_tts
-          JWT_SECRET_KEY=dev
-          JWT_ALGORITHM=HS256
-          ACCESS_TOKEN_EXPIRE_MINUTES=30
-          DEV_MODE=true
-          SKIP_API_VALIDATION=true
-          EOF
-          mkdir -p uploads logs
+          docker version
+          docker compose version
 
-      # 画像をビルド（CI用override併用 & フロントに API 基点を注入）
-      - name: Build images
+      # まず画像類をビルド＆起動（CI向けcomposeも併用）
+      - name: Build & Up
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build postgres redis
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
-            --build-arg VITE_API_URL=http://backend:8000 frontend
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build e2e
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
 
-      # まず DB/Redis 起動 → ヘルス待ち
-      - name: Start database layer
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d postgres redis
-
-      - name: Wait for postgres/redis health
+      # 遅い環境に合わせて丁寧に待つ（backend health + frontend 200）
+      - name: Wait for services
+        shell: bash
         run: |
-          for i in {1..120}; do
-            PG=$(docker inspect -f '{{.State.Health.Status}}' ai-secretary-postgres 2>/dev/null || true)
-            RD=$(docker inspect -f '{{.State.Health.Status}}' ai-secretary-redis 2>/dev/null || true)
-            echo "postgres=$PG redis=$RD ($i/120)"
-            [ "$PG" = "healthy" ] && [ "$RD" = "healthy" ] && break
-            sleep 2
+          set -eux
+          # backend ヘルス（最大120秒）
+          for i in {1..24}; do
+            if docker compose ps --format json | jq -e '.[] | select(.Service=="backend") | .Health=="healthy"' >/dev/null; then
+              echo "backend healthy"; break
+            fi
+            sleep 5
           done
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+          # frontend のHTTP 200（最大120秒）
+          for i in {1..24}; do
+            if docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T e2e curl -sSf http://frontend/assistants >/dev/null; then
+              echo "frontend responding"; break
+            fi
+            sleep 5
+          done
 
-      # マイグレーション（スキーマ既存なら stamp で整合）
-      - name: Migrate DB (upgrade or stamp if schema already exists)
+      - name: Run e2e tests
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head || \
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic stamp head
+          set -eux
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm -T e2e
 
-      # バックエンド＆フロント起動（ホスト公開なし）
-      - name: Start app services
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend frontend
+      # 失敗したときのログ・レポート採取
+      - name: Dump logs (on failure)
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color postgres backend frontend | tee compose.logs || true
 
-      # E2E をコンテナ内で実行（内部ネットワークで http://frontend を叩く）
-      - name: Run Playwright tests in container
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm e2e
-
-      # ログ・レポート保存
-      - name: Docker ps & logs (always)
+      - name: Collect Playwright report
         if: always()
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-logs.txt || true
+          mkdir -p artifacts
+          # e2e コンテナ側の出力をコピー（存在しなくてもOKにする）
+          docker ps -a
+          CID=$(docker ps -a --filter "name=e2e" --format "{{.ID}}" | head -n1 || true)
+          if [ -n "$CID" ]; then
+            docker cp "$CID":/workspace/frontend/playwright-report ./artifacts/playwright-report || true
+            docker cp "$CID":/workspace/frontend/test-results ./artifacts/test-results || true
+          fi
+          [ -f compose.logs ] && cp compose.logs artifacts/ || true
 
-      - name: Upload Playwright report
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: frontend/playwright-report
-          retention-days: 7
-
-      - name: Upload docker logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-logs
-          path: docker-logs.txt
-          retention-days: 7
+          name: e2e-artifacts
+          path: artifacts

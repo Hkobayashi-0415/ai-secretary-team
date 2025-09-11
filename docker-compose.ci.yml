@@ -1,47 +1,23 @@
-# docker-compose.ci.yml（置き換え）
 services:
-  backend:
-    expose:
-      - "8000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-    networks:
-      - ai-secretary-network
-
-  frontend:
-    # アプリ側のまま（nginx.conf が listen 3000 のままでOK）
-    expose:
-      - "3000"
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - ai-secretary-network
-
+  # E2E runner（Playwright公式イメージ）
   e2e:
-    image: mcr.microsoft.com/playwright:v1.47.2-jammy
-    # ★ フロントと同じネットワーク名前空間を共有 → DNS不要・localhostで到達
-    network_mode: "service:frontend"
+    image: mcr.microsoft.com/playwright:v1.46.1-jammy
     working_dir: /workspace/frontend
+    # フロントのソース（tests/ はここ）
     volumes:
       - ./frontend:/workspace/frontend
-    environment:
-      # ★ ここを localhost:3000 に固定（← 今は frontend になっている）
-      PLAYWRIGHT_BASE_URL: http://localhost:3000
-      API_BASE_URL: http://backend:8000
-      CI: "true"
+    # 同一ネットワーク内で http://frontend にアクセスさせる
     depends_on:
       backend:
         condition: service_healthy
       frontend:
         condition: service_started
-    entrypoint: >
-      bash -lc "
-        npm ci &&
-        npx playwright install --with-deps &&
-        npm run test:e2e
-      "
-
-networks:
-  ai-secretary-network:
-    external: false
+    entrypoint: [ "bash", "-lc" ]
+    command: >
+      set -eux;
+      npm ci;
+      # 公式イメージにはブラウザ済だが、将来の差分吸収に一応インストールを明示
+      npx playwright install --with-deps;
+      # たまにSPAの初回ビルド/キャッシュで1回目が遅いので軽く待つ
+      sleep 3;
+      npx playwright test --reporter=line
