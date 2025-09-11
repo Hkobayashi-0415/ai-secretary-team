@@ -1,7 +1,9 @@
 """スキル定義に基づき、最適なLLMを選択するクラス"""
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.phase2_models import SkillDefinition
 from typing import List
+
+from app.models.phase2_models import SkillDefinition
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 class LLMRouter:
     def __init__(self, db: AsyncSession):

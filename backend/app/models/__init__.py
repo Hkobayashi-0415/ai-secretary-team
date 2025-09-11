@@ -1,23 +1,32 @@
 # backend/app/models/__init__.py
-from .models import Base, User, AIAssistant
+from .models import AIAssistant, Base, User
 from .phase2_models import (
-    SkillDefinition,
-    AssistantSkill,
     Agent,
-    Voice,
+    AssistantSkill,
     Avatar,
-    PersonalityTemplate,
     Conversation,
-    Message,
     File,
-    UserPreference
+    Message,
+    PersonalityTemplate,
+    SkillDefinition,
+    UserPreference,
+    Voice,
 )
 
 __all__ = [
     # 既存モデル
-    'Base', 'User', 'AIAssistant',
+    "Base",
+    "User",
+    "AIAssistant",
     # Phase 2モデル
-    'SkillDefinition', 'AssistantSkill', 'Agent',
-    'Voice', 'Avatar', 'PersonalityTemplate',
-    'Conversation', 'Message', 'File', 'UserPreference'
+    "SkillDefinition",
+    "AssistantSkill",
+    "Agent",
+    "Voice",
+    "Avatar",
+    "PersonalityTemplate",
+    "Conversation",
+    "Message",
+    "File",
+    "UserPreference",
 ]

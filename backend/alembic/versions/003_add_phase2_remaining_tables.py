@@ -4,8 +4,8 @@ Revision ID: 003_add_phase2_remaining_tables
 Revises: 002_add_default_local_user
 Create Date: 2025-08-30 23:00:00.000000
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "003_add_phase2_remaining_tables"
@@ -18,7 +18,9 @@ def _table_exists(inspector, name: str, schema: str | None = None) -> bool:
     return name in inspector.get_table_names(schema=schema)
 
 
-def _column_exists(inspector, table: str, column: str, schema: str | None = None) -> bool:
+def _column_exists(
+    inspector, table: str, column: str, schema: str | None = None
+) -> bool:
     return any(c["name"] == column for c in inspector.get_columns(table, schema=schema))
 
 
@@ -39,7 +41,9 @@ def upgrade() -> None:
     )
 
     # --- agents に vector カラムを“テーブルがある場合かつ未作成の場合のみ”追加
-    if _table_exists(inspector, "agents") and not _column_exists(inspector, "agents", "vector"):
+    if _table_exists(inspector, "agents") and not _column_exists(
+        inspector, "agents", "vector"
+    ):
         op.add_column("agents", sa.Column("vector", sa.Text(), nullable=True))
 
 
@@ -47,5 +51,7 @@ def downgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    if _table_exists(inspector, "agents") and _column_exists(inspector, "agents", "vector"):
+    if _table_exists(inspector, "agents") and _column_exists(
+        inspector, "agents", "vector"
+    ):
         op.drop_column("agents", "vector")

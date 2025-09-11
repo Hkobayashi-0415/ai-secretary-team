@@ -1,11 +1,13 @@
 # backend/app/core/database.py
-import os
 import logging
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+import os
+
 from app.core.config import settings
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
+
 
 def _mask_db_url(url: str) -> str:
     try:
@@ -16,6 +18,7 @@ def _mask_db_url(url: str) -> str:
         return f"{scheme}://***@{after_at}"
     except Exception:
         return "***"
+
 
 # 必要なときだけDB URLをDEBUGで出す（マスク付き）
 if os.getenv("PRINT_DB_URL", "0") == "1":
@@ -34,6 +37,7 @@ AsyncSessionLocal = sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
 
 async def get_async_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:

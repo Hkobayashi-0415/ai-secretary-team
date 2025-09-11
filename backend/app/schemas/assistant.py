@@ -3,11 +3,12 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AssistantBase(BaseModel):
     """アシスタントの基本フィールド"""
+
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     default_llm_model: Optional[str] = Field("gemini-pro", max_length=100)
@@ -19,16 +20,19 @@ class AssistantBase(BaseModel):
 
 class AssistantCreate(AssistantBase):
     """アシスタント作成スキーマ"""
+
     pass
 
 
 class AssistantUpdate(AssistantBase):
     """既存の更新スキーマ（後方互換のため維持）"""
+
     name: Optional[str] = Field(None, max_length=100)
 
 
 class AssistantUpdateFinal(BaseModel):
     """最終版：全フィールドOptionalの更新スキーマ"""
+
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     default_llm_model: Optional[str] = Field(None, max_length=100)
@@ -45,6 +49,7 @@ class AssistantUpdateFinal(BaseModel):
 
 class Assistant(AssistantBase):
     """レスポンス用スキーマ"""
+
     id: uuid.UUID
     user_id: uuid.UUID
     is_active: bool = True

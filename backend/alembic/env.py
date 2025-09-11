@@ -2,14 +2,14 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
-from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config # <- 非同期エンジンを使います
-
 from alembic import context
 
 # この部分は先ほど編集していただいた通りです
 from app.models.models import Base
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config  # <- 非同期エンジンを使います
+
 target_metadata = Base.metadata
 
 # this is the Alembic Config object, which provides

@@ -1,19 +1,18 @@
 # backend/app/api/v1/endpoints/assistants.py
-from typing import List
 import uuid
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-
-from app.core.database import get_async_db
 from app.core.config import settings
+from app.core.database import get_async_db
 from app.models.models import AIAssistant, User
 from app.schemas.assistant import (
     AssistantCreate,
     AssistantResponse,
     AssistantUpdateFinal,
 )
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 router = APIRouter()
 
