@@ -1,7 +1,6 @@
 """ルーティングサービス内で使用するデータモデルを定義します。"""
 from typing import List, Optional
 from pydantic import BaseModel
-import uuid
 
 class AnalyzedTask(BaseModel):
     """タスク分析官によって解析されたタスクの情報"""

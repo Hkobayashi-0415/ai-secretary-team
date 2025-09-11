@@ -1,46 +1,88 @@
+// frontend/tests/assistants-happy.spec.ts
 import { test, expect } from '@playwright/test';
 
 test('Assistants: Create → Edit → Delete (happy path)', async ({ page }) => {
-  test.setTimeout(45_000); // ★ 少し余裕
   await page.goto('/assistants');
 
-  const now = Date.now();
-  const name = `E2E-${now}`;
-  const desc = 'created by e2e';
-  const updatedName = `${name}-updated`;
-  const updatedDesc = 'updated by e2e';
+  // Create: 入力待ち
+  await page.getByTestId('assistant-create-name').waitFor({ state: 'visible' });
 
-  // Create
-  await page.getByPlaceholder('例: Demo Assistant').fill(name);
-  await page.getByPlaceholder('短い説明').fill(desc);
-  await page.locator('select').first().selectOption('gemini-pro');
-  await page.getByRole('button', { name: 'Create' }).click();
+  const name = `E2E-${Date.now()}`;
+  await page.getByTestId('assistant-create-name').fill(name);
+  await page.getByTestId('assistant-create-description').fill('e2e desc');
+  await page.getByTestId('assistant-create-model').selectOption('gemini-pro');
 
-  // 作成された行（テキスト表示のまま）の確認
-  const createdRow = page.locator('li', { hasText: name });
-  await expect(createdRow).toBeVisible();
+  // 作成送信とAPI完了待ち（POSTと、その後の一覧GET）
+  const waitPost = page.waitForResponse(r => {
+    try {
+      const u = new URL(r.url());
+      return /\/api\/v1\/assistants\/?$/.test(u.pathname) && r.request().method() === 'POST' && r.ok();
+    } catch { return false; }
+  });
+  const waitGetAfterCreate = page.waitForResponse(r => {
+    try {
+      const u = new URL(r.url());
+      return /\/api\/v1\/assistants\/?$/.test(u.pathname) && r.request().method() === 'GET' && r.ok();
+    } catch { return false; }
+  });
 
-  // Edit
-  await createdRow.getByRole('button', { name: 'Edit' }).click();
+  await page.getByTestId('assistant-create-submit').click();
+  const postRes = await waitPost;
+  await waitGetAfterCreate;
 
-  // ★ 編集モードではテキストが input に変わるため、
-  //   「Save ボタンがある li」を“編集中の行”として取り直す
-  const editRow = page.locator('li', { has: page.getByRole('button', { name: 'Save' }) }).first();
-  await expect(editRow).toBeVisible();
+  // 作成IDを取得して、その行をピンポイントで取る
+  const created = await postRes.json();
+  const id: string = created.id;
+  const row = page.getByTestId(`assistant-row-${id}`);
 
-  // 入力欄に値を入れて保存
-  await editRow.locator('input').first().fill(updatedName);
-  await editRow.locator('input').nth(1).fill(updatedDesc);
-  await editRow.locator('select').first().selectOption('gpt-4');
-  await editRow.getByRole('button', { name: 'Save' }).click();
+  await expect(row).toBeVisible();
+  await expect(row).toContainText(name);
 
-  // 更新結果の確認（表示に戻った行を再確認）
-  const updatedRow = page.locator('li', { hasText: updatedName });
-  await expect(updatedRow).toBeVisible();
-  await expect(updatedRow).toContainText('(gpt-4)');
+  // --- Edit ---
+  await row.getByTestId('assistant-edit').click();
 
-  // Delete
-  page.once('dialog', (d) => d.accept()); // confirm を自動承認
-  await updatedRow.getByRole('button', { name: 'Delete' }).click();
-  await expect(page.locator('li', { hasText: updatedName })).toHaveCount(0);
+  // 編集フィールドが出るまで待つ（この待ちが超重要）
+  await row.getByTestId('assistant-edit-name').waitFor({ state: 'visible' });
+
+  const edited = `${name}-edited`;
+  await row.getByTestId('assistant-edit-name').fill(edited);
+  await row.getByTestId('assistant-edit-description').fill('e2e desc edited');
+  await row.getByTestId('assistant-edit-model').selectOption('gpt-4');
+
+  // 保存とAPI完了待ち（PUT or PATCH、対象IDに限定）
+  const waitUpdate = page.waitForResponse(r => {
+    try {
+      const u = new URL(r.url());
+      return new RegExp(`/api/v1/assistants/${id}/?$`).test(u.pathname)
+        && ['PUT', 'PATCH'].includes(r.request().method())
+        && r.ok();
+    } catch { return false; }
+  });
+
+  await row.getByTestId('assistant-save').click();
+  await waitUpdate;
+
+  // 表示が更新されたことを確認
+  await expect(row).toBeVisible();
+  await expect(row).toContainText(edited);
+  await expect(row).toContainText('gpt-4');
+
+  // --- Delete ---
+  // confirm を自動承認
+  page.once('dialog', d => d.accept());
+
+  const waitDelete = page.waitForResponse(r => {
+    try {
+      const u = new URL(r.url());
+      return new RegExp(`/api/v1/assistants/${id}/?$`).test(u.pathname)
+        && r.request().method() === 'DELETE'
+        && r.ok();
+    } catch { return false; }
+  });
+
+  await row.getByTestId('assistant-delete').click();
+  await waitDelete;
+
+  // 行が消えたことを確認
+  await expect(row).toHaveCount(0);
 });

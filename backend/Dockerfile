@@ -1,37 +1,33 @@
-# Use Python 3.11 slim image
+# Python-based backend image for development/CI
 FROM python:3.11-slim
 
-# Set environment variables
+# Environment
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 
-# Set work directory
+# Workdir
 WORKDIR /app
 
-# Install system dependencies
+# System deps
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Python deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
+# App source
 COPY . .
 
-# Create necessary directories
+# Runtime dirs
 RUN mkdir -p /app/logs /app/uploads
 
-# Expose port
+# Expose/health (compose provides the run command)
 EXPOSE 8000
-
-# Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 

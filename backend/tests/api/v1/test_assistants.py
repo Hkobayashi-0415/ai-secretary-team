@@ -34,7 +34,7 @@ async def test_create_and_read_assistant(client: AsyncClient, db):
     response = await client.post("/api/v1/assistants/", json=new_assistant_data)
     
     # 3. 作成が成功したかを確認
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_201_CREATED
     created_assistant = response.json()
     assert created_assistant["name"] == new_assistant_data["name"]
     assert "id" in created_assistant

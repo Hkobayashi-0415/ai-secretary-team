@@ -1,0 +1,25 @@
+[35mREADME.md[m[36m:[m[32m66[m[36m:[m│   ├── init/                   # [1;31m初期化[mスクリプト
+[35mdocs/01-foundation/database/01-database-design.md[m[36m:[m[32m1750[m[36m:[m### 14.3 [1;31m初期データ[m設計
+[35mdocs/01-foundation/database/01-database-design.md[m[36m:[m[32m1752[m[36m:[m#### 14.3.1 システム[1;31m初期データ[m
+[35mdocs/01-foundation/database/01-database-design.md[m[36m:[m[32m1773[m[36m:[m    # システムロールの[1;31m初期データ[m
+[35mdocs/01-foundation/database/01-database-design.md[m[36m:[m[32m1783[m[36m:[m    # デフォルトペルソナの[1;31m初期データ[m
+[35mdocs/01-foundation/database/01-database-design.md[m[36m:[m[32m1812[m[36m:[m    # デフォルトチームの[1;31m初期データ[m
+[35mdocs/01-foundation/database/01-database-design.md[m[36m:[m[32m1823[m[36m:[m    # [1;31m初期データ[mの削除
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m85[m[36m:[m- **データベース設計**: 設計完了（スキーマ設計、インデックス、トリガー、[1;31m初期データ[m）
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m101[m[36m:[m- データベース接続・[1;31m初期化[m
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m130[m[36m:[m- ✅ データベーススキーマの設計と[1;31m初期化[m
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m135[m[36m:[m- 🚀 Reactプロジェクトの[1;31m初期化[m
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m163[m[36m:[m2. **Reactプロジェクト[1;31m初期化[m**
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m239[m[36m:[m- FastAPIプロジェクト[1;31m初期化[m
+[35mdocs/01-foundation/requirements/01-project-overview.md[m[36m:[m[32m244[m[36m:[m- Reactプロジェクト[1;31m初期化[m（Vite）
+[35mdocs/01-foundation/technical/02-logging-error-handling.md[m[36m:[m[32m610[m[36m:[m# ロガーの[1;31m初期化[m
+[35mdocs/01-foundation/technical/04-technical-specification.md[m[36m:[m[32m297[m[36m:[m- **データベース[1;31m初期化[m**: テーブル作成・[1;31m初期データ[m投入
+[35mdocs/02-implementation/deployment/01-deployment-guide.md[m[36m:[m[32m342[m[36m:[m        # PostgreSQL[1;31m初期化[m
+[35mdocs/02-implementation/deployment/01-deployment-guide.md[m[36m:[m[32m510[m[36m:[m5. データベース[1;31m初期化[m
+[35mdocs/02-implementation/integration/01-integration-strategy.md[m[36m:[m[32m73[m[36m:[m└── database/                   # PostgreSQL[1;31m初期化[m
+[35mdocs/02-implementation/integration/01-integration-strategy.md[m[36m:[m[32m261[m[36m:[m- **[1;31m初期データ[mの移行**
+[35mdocs/03-github-original/README.md[m[36m:[m[32m57[m[36m:[m- **2025-01-XX**: プロジェクト[1;31m初期化[m、仕様書格納
+[35mdocs/04-templates/HANDOVER_DOCUMENT.md[m[36m:[m[32m409[m[36m:[m- **[1;31m初期データ[m**: デフォルトデータ・サンプルデータ
+[35mdocs/04-templates/HANDOVER_DOCUMENT.md[m[36m:[m[32m513[m[36m:[m- **マイグレーション**: Alembic設定・[1;31m初期データ[m設計
+[35mdocs/README.md[m[36m:[m[32m57[m[36m:[m- **2025-01-XX**: プロジェクト[1;31m初期化[m、仕様書格納
+[35mdocs/SIMPLIFIED_LOCAL_DESIGN.md[m[36m:[m[32m318[m[36m:[m- [ ] Reactアプリケーションの[1;31m初期化[m

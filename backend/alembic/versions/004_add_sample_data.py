@@ -19,9 +19,32 @@ branch_labels = None
 depends_on = None
 
 
+def _table_exists(inspector, name: str, schema: str | None = None) -> bool:
+    try:
+        return name in inspector.get_table_names(schema=schema)
+    except Exception:
+        return False
+
+
 def upgrade() -> None:
-    """サンプルデータをデータベースに投入します。"""
+    """サンプルデータをデータベースに投入します。必要テーブルが無い場合はスキップ。"""
     print("サンプルデータの投入を開始します...")
+
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    required = [
+        "assistants",
+        "personality_templates",
+        "skill_definitions",
+        "assistant_skills",
+    ]
+    missing = [t for t in required if not _table_exists(inspector, t)]
+    if missing:
+        print(
+            f"[skip] 必要なテーブルが存在しないためサンプル投入をスキップ: {', '.join(missing)}"
+        )
+        return
 
     # --- テーブルオブジェクトの定義 ---
     personality_templates_table = table('personality_templates',

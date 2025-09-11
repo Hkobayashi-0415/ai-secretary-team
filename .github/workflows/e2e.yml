@@ -2,8 +2,10 @@ name: e2e
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -34,6 +36,12 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
 
+      # Build & Up の直後
+      - name: Backend logs (early peek)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color backend | tail -n 200 || true
+
+
       # 遅い環境に合わせて丁寧に待つ（backend health + frontend 200）
       - name: Wait for services
         shell: bash
@@ -53,6 +61,13 @@ jobs:
             fi
             sleep 5
           done
+
+       # 既存の Wait for services の後でも可（両方でも OK）
+      - name: Dump logs (on failure)
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color postgres backend frontend | tee compose.logs || true 
 
       - name: Run e2e tests
         run: |
