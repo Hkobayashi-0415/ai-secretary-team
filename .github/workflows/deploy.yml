@@ -53,10 +53,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install pytest pytest-cov
+          pip install asyncpg
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
