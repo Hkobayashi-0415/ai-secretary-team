@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     """
 
     # === 基本 ===
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", "sqlite+aiosqlite:///:memory:"
+    )
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your_default_secret_key")
 
     # === 環境/挙動フラグ ===

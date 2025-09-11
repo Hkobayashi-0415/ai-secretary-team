@@ -1,3 +1,4 @@
+import os
 import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
@@ -5,12 +6,15 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+# テスト用のデータベースURL
+TEST_DATABASE_URL = (
+    "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test"
+)
+os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
+
 from app.main import app
 from app.core.database import get_async_db
 from app.models.models import Base
-
-# テスト用のデータベースURL
-TEST_DATABASE_URL = "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test"
 
 engine = create_async_engine(TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(
