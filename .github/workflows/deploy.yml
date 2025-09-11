@@ -53,10 +53,11 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-cov
           pip install asyncpg
+          pip install "httpx>=0.27"
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/test_db
           REDIS_URL: redis://localhost:6379
           ENVIRONMENT: test
           DISABLE_LLM_VALIDATION: "1"
