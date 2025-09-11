@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -13,7 +14,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:16
@@ -27,7 +28,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7
         options: >-
@@ -39,79 +40,80 @@ jobs:
           - 6379:6379
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r backend/requirements.txt
-        pip install pytest pytest-cov
-    
-    - name: Run tests
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-        REDIS_URL: redis://localhost:6379
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: |
-        cd backend
-        pytest --cov=app --cov-report=xml || (if [ $? -eq 5 ]; then echo "No tests found, proceeding."; else exit $?; fi)
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./backend/coverage.xml
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          cd backend
+          pytest --cov=app --cov-report=xml || (if [ $? -eq 5 ]; then echo "No tests found, proceeding."; else exit $?; fi)
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
 
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Build and push Docker images
-          - name: Build and push Docker images
-      run: |
-        # Convert repository name to lowercase
-        IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-        
-        # Build common images
-        docker build -f backend/Dockerfile.common -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:common ./backend
-        docker build -f frontend/Dockerfile.common -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:common ./frontend
-        
-        # Build production images
-        docker build -f backend/Dockerfile.production -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:latest ./backend
-        docker build -f frontend/Dockerfile.production -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:latest ./frontend
-        
-        # Push images
-        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:common
-        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:common
-        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:latest
-        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:latest
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker images
+        run: |
+          set -euo pipefail
+          # repo 名を小文字に
+          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+
+          # build
+          docker build -f backend/Dockerfile.common     -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:common   ./backend
+          docker build -f frontend/Dockerfile.common    -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:common  ./frontend
+          docker build -f backend/Dockerfile.production -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:latest   ./backend
+          docker build -f frontend/Dockerfile.production -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:latest ./frontend
+
+          # push
+          docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:common
+          docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:common
+          docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/backend:latest
+          docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/frontend:latest
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - name: Deploy to production
-      run: |
-        echo "Deploy to production server"
-        # ここに実際のデプロイスクリプトを追加 
+      - name: Deploy to production
+        run: |
+          echo "Deploy to production server"
+          # 実際のデプロイスクリプトをここに
