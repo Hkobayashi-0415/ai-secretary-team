@@ -7,14 +7,22 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config # <- 非同期エンジンを使います
 
 from alembic import context
+from app.core.config import settings
 
 # この部分は先ほど編集していただいた通りです
 from app.models.models import Base
+# Ensure Phase2 models are imported so their tables register on Base.metadata
+from app.models import phase2_models  # noqa: F401
 target_metadata = Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Ensure sqlalchemy.url is set (fallback to env settings)
+if config.get_main_option("sqlalchemy.url") in (None, ""):
+    # Use app settings DATABASE_URL when not provided via alembic.ini
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -50,7 +58,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    # connectableを非同期で作成します
+    # Create engine from configured URL (now ensured above)
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

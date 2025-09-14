@@ -3,6 +3,7 @@
 
 -- 拡張機能の有効化
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- CREATE EXTENSION IF NOT EXISTS "pgvector";  -- 後でpgvector対応イメージで有効化
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
@@ -117,6 +118,7 @@ CREATE TABLE assistant_skills (
     priority INTEGER NOT NULL DEFAULT 1,
     custom_settings JSONB,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (assistant_id, skill_definition_id)
 );
 
@@ -252,6 +254,7 @@ CREATE TRIGGER update_assistants_updated_at BEFORE UPDATE ON assistants FOR EACH
 CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_files_updated_at BEFORE UPDATE ON files FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_assistant_skills_updated_at BEFORE UPDATE ON assistant_skills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 初期データ挿入（システム提供の基本データ）
 INSERT INTO voices (id, user_id, name, provider, voice_id, language, gender, settings, is_public, is_active) VALUES

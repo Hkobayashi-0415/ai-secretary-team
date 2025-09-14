@@ -14,7 +14,7 @@ import json
 
 # revision identifiers, used by Alembic.
 revision = '004_add_sample_data'
-down_revision = '003_add_phase2_remaining_tables'
+down_revision = '006_phase2_updated_at'
 branch_labels = None
 depends_on = None
 

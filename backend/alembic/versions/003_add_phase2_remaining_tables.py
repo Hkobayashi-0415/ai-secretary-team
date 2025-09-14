@@ -8,6 +8,7 @@ Create Date: 2025-08-30 23:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = '003_add_phase2_remaining_tables'
@@ -17,45 +18,42 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Phase 2の新規テーブルを作成（既存のskill関連テーブルは除く）"""
-    
-    print("Phase 2の追加テーブル作成を開始します...")
-    
-    # 既存テーブルの確認
-    print("注意: skill_definitions, assistant_skills, agents テーブルは既に存在します")
-    
-    # --- 以下は既存テーブルに存在しない可能性があるもののみ ---
-    
-    # pgvector拡張の有効化（必要な場合）
-    try:
-        op.execute('CREATE EXTENSION IF NOT EXISTS vector')
-        print("pgvector拡張を有効化しました")
-    except Exception as e:
-        print(f"pgvector拡張のスキップ（既に存在または利用不可）: {e}")
-    
-    # --- agents テーブルのvectorカラム追加（もし存在しない場合） ---
-    # 既存のagentsテーブルにvectorカラムがない場合は追加
-    try:
-        op.add_column('agents', 
-            sa.Column('vector', sa.Text(), nullable=True)  # 一旦Textとして追加
-        )
-        print("agentsテーブルにvectorカラムを追加しました")
-    except Exception as e:
-        print(f"vectorカラムのスキップ（既に存在）: {e}")
-    
-    print("Phase 2の追加テーブル作成が完了しました")
+    """Create additional Phase 2 artifacts without breaking transactions.
+
+    - Enable pgvector only if the extension is available
+    - If an existing 'agents' table is present and lacks 'vector', add it
+    """
+
+    bind = op.get_bind()
+    insp = inspect(bind)
+
+    # Enable pgvector only when available to avoid errors
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_available_extensions WHERE name = 'vector'
+            ) THEN
+                CREATE EXTENSION IF NOT EXISTS vector;
+            END IF;
+        END
+        $$;
+        """
+    )
+
+    # Add vector column only if agents table already exists and column is missing
+    if 'agents' in insp.get_table_names():
+        cols = {c['name'] for c in insp.get_columns('agents')}
+        if 'vector' not in cols:
+            op.add_column('agents', sa.Column('vector', sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
-    """Phase 2の追加分のみを削除"""
-    
-    print("Phase 2の追加分の削除を開始します...")
-    
-    # vectorカラムの削除（存在する場合）
-    try:
-        op.drop_column('agents', 'vector')
-        print("agentsテーブルからvectorカラムを削除しました")
-    except Exception as e:
-        print(f"vectorカラム削除のスキップ: {e}")
-    
-    print("Phase 2の追加分の削除が完了しました")
+    bind = op.get_bind()
+    insp = inspect(bind)
+    if 'agents' in insp.get_table_names():
+        cols = {c['name'] for c in insp.get_columns('agents')}
+        if 'vector' in cols:
+            op.drop_column('agents', 'vector')
+
