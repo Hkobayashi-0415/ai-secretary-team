@@ -1,47 +1,114 @@
-# docker-compose.ci.yml（置き換え）
+version: '3.8'
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ai_secretary
+      POSTGRES_USER: ai_secretary_user
+      POSTGRES_PASSWORD: ai_secretary_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_secretary_user -d ai_secretary"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ai-secretary-network
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-secretary-network
+
   backend:
-    expose:
-      - "8000"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=development
+      - CORS_ORIGINS=http://frontend,http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        cd /app &&
+        alembic upgrade head &&
+        python -m app.scripts.ensure_default_user &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - ai-secretary-network
 
   frontend:
-    # アプリ側のまま（nginx.conf が listen 3000 のままでOK）
-    expose:
-      - "3000"
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_URL=/api
+      - NODE_ENV=development
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - ai-secretary-network
 
   e2e:
-    image: mcr.microsoft.com/playwright:v1.47.2-jammy
-    # ★ フロントと同じネットワーク名前空間を共有 → DNS不要・localhostで到達
-    network_mode: "service:frontend"
-    working_dir: /workspace/frontend
+    image: mcr.microsoft.com/playwright:v1.55.0-jammy
+    working_dir: /workspace
     volumes:
-      - ./frontend:/workspace/frontend
-    environment:
-      # ★ ここを localhost:3000 に固定（← 今は frontend になっている）
-      PLAYWRIGHT_BASE_URL: http://localhost:3000
-      API_BASE_URL: http://backend:8000
-      CI: "true"
+      - ./:/workspace
     depends_on:
       backend:
         condition: service_healthy
       frontend:
         condition: service_started
-    entrypoint: >
-      bash -lc "
-        npm ci &&
-        npx playwright install --with-deps &&
-        npm run test:e2e
-      "
+    networks:
+      - ai-secretary-network
+    environment:
+      # ここで固定しておけばホスト側の env に依存しない
+      E2E_BASE_URL: http://frontend
+    entrypoint: ["/bin/bash", "-lc"]
+    command: ./scripts/e2e-entry.sh
+
+  schema-check:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - ai-secretary-network
+    environment:
+      POSTGRES_DB: ai_secretary
+      POSTGRES_USER: ai_secretary_user
+      POSTGRES_PASSWORD: ai_secretary_password
+    entrypoint: ["/bin/sh", "-lc"]
+    command: >
+      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -tAc \
+      "SELECT 1 FROM information_schema.columns WHERE table_name='assistant_skills' AND column_name='updated_at'" \
+      | grep -q 1
 
 networks:
   ai-secretary-network:
-    external: false
+    driver: bridge

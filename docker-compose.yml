@@ -60,14 +60,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - ENVIRONMENT=development
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://frontend
       - DB_HOST=postgres
       - DB_USER=ai_secretary_user
       - DB_NAME=ai_secretary
       - POSTGRES_PASSWORD=ai_secretary_password
     volumes:
       - ./backend:/app
-      - /app/__pycache__
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,6 +78,7 @@ services:
         sleep 5 &&
         cd /app &&
         alembic upgrade head &&
+        python -m app.scripts.ensure_default_user &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
     healthcheck:
@@ -99,7 +99,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=/api
       - NODE_ENV=development
     volumes:
       - ./frontend:/app

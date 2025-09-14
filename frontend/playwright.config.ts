@@ -1,17 +1,9 @@
-// frontend/playwright.config.ts
 import { defineConfig } from '@playwright/test';
 
-// CIでは e2e コンテナから http://frontend を叩く。ローカル実行は 3000。
-const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  (process.env.CI ? 'http://frontend' : 'http://localhost:3000');
-
 export default defineConfig({
-  testDir: './tests',
+  timeout: 45_000,
   use: {
-    baseURL,
-    headless: true,
+    baseURL: process.env.E2E_BASE_URL ?? 'http://frontend', // ← ここが重要
+    trace: 'retain-on-failure',
   },
-  timeout: 30_000,
-  reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],
 });

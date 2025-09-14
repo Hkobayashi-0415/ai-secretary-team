@@ -3,21 +3,24 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-# devDeps 必須（tsc/vite 用）
 RUN npm ci
 
-# ★ ここで API 基点を受け取る（デフォルトはローカル）
-ARG VITE_API_URL=http://localhost:8000
+# Allow overriding API origin at build time (default: relative '/api')
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=${VITE_API_URL}
 
 COPY . .
 RUN npm run build
 
-# Production stage
+# Runtime stage
 FROM nginx:alpine
-# Nginx は 80 で待受け
-EXPOSE 80
+WORKDIR /usr/share/nginx/html
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-CMD ["nginx", "-g", "daemon off;"]
+COPY --from=builder /app/dist ./
+
+# Use conf.d convention for server block
+RUN rm -f /etc/nginx/conf.d/default.conf || true
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"] 

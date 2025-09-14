@@ -3,7 +3,9 @@ import axios from 'axios';
 
 // バックエンドAPIのベースURLを設定します。
 // .envファイルなどから読み込むのが理想ですが、まずは直接記述します。
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const rawOrigin = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:8000';
+const trimmed = String(rawOrigin).replace(/\/$/, '');
+const API_BASE_URL = trimmed.startsWith('http') ? `${trimmed}/api/v1` : `${trimmed}/v1`;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
