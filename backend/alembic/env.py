@@ -13,6 +13,10 @@ from app.core.config import settings
 from app.models.models import Base
 # Ensure Phase2 models are imported so their tables register on Base.metadata
 from app.models import phase2_models  # noqa: F401
+try:
+    from app.scripts.ensure_default_user import ensure_default_user  # type: ignore
+except Exception:
+    ensure_default_user = None  # type: ignore
 target_metadata = Base.metadata
 
 # this is the Alembic Config object, which provides
@@ -70,6 +74,13 @@ async def run_migrations_online() -> None:
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
+
+    # Optionally ensure default user after migrations
+    if 'ensure_default_user' in globals() and ensure_default_user:
+        try:
+            await ensure_default_user()  # type: ignore[misc]
+        except TypeError:
+            ensure_default_user()  # type: ignore[misc]
 
 
 if context.is_offline_mode():
