@@ -86,7 +86,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Build and push Docker images
-          - name: Build and push Docker images
       run: |
         # Convert repository name to lowercase
         IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
