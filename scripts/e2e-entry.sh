@@ -27,5 +27,12 @@ for i in {1..60}; do
   sleep 2
 done
 
-# 実行
-E2E_BASE_URL="${BASE_URL}" npx playwright test --reporter=line
+# 実行（HTMLレポートも出力）
+E2E_BASE_URL="${BASE_URL}" npx playwright test --reporter=html,line
+
+# CIなどでレポートを収集できるよう、ワークスペースにコピー
+if [ -d "playwright-report" ]; then
+  mkdir -p /workspace/frontend
+  rm -rf /workspace/frontend/playwright-report || true
+  cp -r playwright-report /workspace/frontend/
+fi

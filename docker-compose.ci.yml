@@ -1,4 +1,4 @@
-version: '3.8'
+ 
 
 services:
   postgres:
@@ -87,7 +87,7 @@ services:
       # ここで固定しておけばホスト側の env に依存しない
       E2E_BASE_URL: http://frontend
     entrypoint: ["/bin/bash", "-lc"]
-    command: ./scripts/e2e-entry.sh
+    command: bash ./scripts/e2e-entry.sh
 
   schema-check:
     image: postgres:16-alpine
