@@ -16,7 +16,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test_db
@@ -51,6 +51,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r backend/requirements.txt
         pip install pytest pytest-cov
+
+    - name: Enable pgvector extension
+      run: |
+        sudo apt-get update && sudo apt-get install -y postgresql-client
+        PGPASSWORD=postgres psql -h localhost -U postgres -d test_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
     
     - name: Run tests
       env:
