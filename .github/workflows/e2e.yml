@@ -18,7 +18,7 @@ jobs:
           GEMINI_API_KEY=
           GOOGLE_SEARCH_API_KEY=
           OPENAI_API_KEY=
-          DATABASE_URL=postgresql://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
+          DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
           POSTGRES_DB=ai_secretary
           POSTGRES_USER=ai_secretary_user
           POSTGRES_PASSWORD=ai_secretary_password

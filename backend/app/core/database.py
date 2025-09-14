@@ -8,15 +8,24 @@ import os
 # --- 診断コード ---
 # アプリケーションが実際に認識しているDATABASE_URLを、起動時にコンソールへ出力させます。
 # これで、環境変数が正しく渡っているかを確実に確認できます。
+db_url = settings.DATABASE_URL or ""
+
+# auto-upgrade sync DSN to async if needed (postgresql -> postgresql+asyncpg)
+if db_url.startswith("postgresql://"):
+    upgraded = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    print("[database] INFO: Upgrading DATABASE_URL to asyncpg driver", file=sys.stderr)
+    settings.DATABASE_URL = upgraded
+    db_url = upgraded
+
 if os.getenv("LOG_DB_URL", "0") == "1" and os.getenv("ENVIRONMENT", "").lower() != "production":
     print("=" * 50, file=sys.stderr)
     print("DEBUG: Attempting to connect with DATABASE_URL:", file=sys.stderr)
-    print(f"'{settings.DATABASE_URL}'", file=sys.stderr)
+    print(f"'{db_url}'", file=sys.stderr)
     print("=" * 50, file=sys.stderr)
 # --- 診断コードここまで ---
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=True,
     future=True
 )

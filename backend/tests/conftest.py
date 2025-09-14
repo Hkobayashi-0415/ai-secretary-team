@@ -1,3 +1,4 @@
+import os
 import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
@@ -9,8 +10,13 @@ from app.main import app
 from app.core.database import get_async_db
 from app.models.models import Base
 
-# テスト用のデータベースURL
-TEST_DATABASE_URL = "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test"
+# テスト用のデータベースURL（環境変数優先）
+# GitHub Actions services(postgres) を使う場合の例:
+#   TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db",
+)
 
 engine = create_async_engine(TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(
