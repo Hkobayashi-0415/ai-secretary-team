@@ -35,4 +35,5 @@ if [ -d "playwright-report" ]; then
   mkdir -p /workspace/frontend
   rm -rf /workspace/frontend/playwright-report || true
   cp -r playwright-report /workspace/frontend/
+  chmod -R a+rX /workspace/frontend/playwright-report || true
 fi
