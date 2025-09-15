@@ -143,6 +143,9 @@ grep GEMINI_API_KEY .env
 ### 前提条件
 - Docker と Docker Compose がインストールされていること
 - Google Gemini API キーを取得済みであること
+- PostgreSQL 用の pgvector 拡張が利用可能であること
+  - 本リポジトリの `docker-compose.common.yml` では `pgvector/pgvector:pg16` イメージを使用し拡張を自動で有効化
+  - 既存のデータベースを利用する場合は `CREATE EXTENSION IF NOT EXISTS vector;` を実行して拡張を有効化してください
 
 ### 1. 環境変数の設定
 
@@ -352,6 +355,16 @@ git push origin main
 - Redis 7+
 - Google Gemini API キー
 
+#### pgvector拡張のインストール
+
+PostgreSQL を手動でセットアップする場合は、pgvector 拡張をインストールした上で次のコマンドを実行してください:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Alembic マイグレーションは拡張が有効であることを前提に実行されます。
+
 ### 1. 環境変数の設定
 
 ```bash
@@ -460,6 +473,10 @@ npm run dev
    # タブレット用環境を起動
    make dev-tablet
    ```
+
+## 🗒️ 更新履歴
+
+- **2025-09-15**: PostgreSQL に pgvector 拡張を導入し、関連ドキュメントを更新
 
 ## 🤝 コントリビューション
 

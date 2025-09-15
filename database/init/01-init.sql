@@ -4,7 +4,7 @@
 -- 拡張機能の有効化
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
--- CREATE EXTENSION IF NOT EXISTS "pgvector";  -- 後でpgvector対応イメージで有効化
+CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- スキーマ作成
