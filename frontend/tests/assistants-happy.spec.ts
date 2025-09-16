@@ -1,3 +1,4 @@
+import { pickList } from './_utils';
 import { test, expect } from '@playwright/test';
 
 type AssistantRecord = {
