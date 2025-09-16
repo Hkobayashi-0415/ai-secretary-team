@@ -5,65 +5,56 @@ from typing import AsyncGenerator, Generator
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
 from app.main import app
 from app.core.database import get_async_db
 from app.models.models import Base
 
-# テスト用のデータベースURL（環境変数優先）
-# GitHub Actions services(postgres) を使う場合の例:
-#   TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+# DOCKERIZED=1 のときは docker ネットワーク上の postgres を使う
+DEFAULT_URL_DOCKER = "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary_test"
+DEFAULT_URL_LOCAL  = "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db"
+
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db",
+    DEFAULT_URL_DOCKER if os.getenv("DOCKERIZED") == "1" else DEFAULT_URL_LOCAL,
 )
 
-engine = create_async_engine(TEST_DATABASE_URL)
+engine = create_async_engine(TEST_DATABASE_URL, future=True)
 TestingSessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
 
-# --- Fixtureの再構築 ---
-
 @pytest.fixture(scope="session")
 def event_loop(request) -> Generator:
-    """テストセッション全体で一つのイベントループを作成する"""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
 @pytest.fixture(scope="function")
 async def db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    テストごとに、まっさらなデータベースとセッションを提供するFixture
-    """
-    # テストの前に、すべてのテーブルを作成
+    # まず拡張を有効化（権限がない環境でも無視して続行）
     async with engine.begin() as conn:
+        try:
+            await conn.exec_driver_sql('CREATE EXTENSION IF NOT EXISTS "vector";')
+        except Exception:
+            pass
+        # その後テーブル作成
         await conn.run_sync(Base.metadata.create_all)
 
-    # テストにDBセッションを渡す
     async with TestingSessionLocal() as session:
         yield session
 
-    # テストの後に、すべてのテーブルを削除
+    # 後片付け
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-
 @pytest.fixture(scope="function")
 async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """
-    テスト用のAPIクライアントを提供するFixture
-    """
-    # アプリケーションのDB接続を、テスト用DBに向ける
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db
-
     app.dependency_overrides[get_async_db] = override_get_db
 
-    # テスト用のクライアントを生成
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
-    
-    # テストが終わったらオーバーライドを元に戻す
     app.dependency_overrides.clear()
