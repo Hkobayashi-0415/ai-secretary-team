@@ -37,6 +37,7 @@ services:
       - CORS_ORIGINS=http://frontend,http://localhost:3000,http://localhost:5173
       - SECRET_KEY=${SECRET_KEY}          # ★ 追加：Actionsのenvやローカルexportから注入
       - GEMINI_API_KEY=${GEMINI_API_KEY}  # ★ 追加：同上
+      - CORS_ORIGINS=http://frontend
     depends_on:
       postgres:
         condition: service_healthy
