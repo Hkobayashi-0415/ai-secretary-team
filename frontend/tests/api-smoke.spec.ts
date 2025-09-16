@@ -1,4 +1,4 @@
-cat > frontend/tests/api-smoke.spec.ts <<'TS'
+
 import { test, expect } from '@playwright/test';
 
 function pickList(json: any): any[] {
@@ -20,4 +20,3 @@ test('assistants API returns seeded data (>=2)', async ({ request }) => {
   expect(Array.isArray(list)).toBe(true);
   expect(list.length).toBeGreaterThanOrEqual(2);
 });
-TS
