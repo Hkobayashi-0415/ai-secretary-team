@@ -5,88 +5,70 @@ on:
     branches: [ main ]
   pull_request:
 
+# Secrets / 公開値の注入（ファイルは作らない）
+env:
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  SECRET_KEY:     ${{ secrets.SECRET_KEY }}
+  VITE_API_URL:   http://backend:8000  # フロントのAPI基点（ビルド時に注入）
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create .env for CI
-        run: |
-          cat > .env <<'EOF'
-          GEMINI_API_KEY=
-          GOOGLE_SEARCH_API_KEY=
-          OPENAI_API_KEY=
-          DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
-          POSTGRES_DB=ai_secretary
-          POSTGRES_USER=ai_secretary_user
-          POSTGRES_PASSWORD=ai_secretary_password
-          REDIS_URL=redis://redis:6379
-          ENVIRONMENT=development
-          DEBUG=true
-          SECRET_KEY=ci-secret
-          # ★ フロントのOriginは http://frontend になるので追加
-          CORS_ORIGINS=http://frontend,http://localhost:3000,http://localhost:5173
-          MAX_FILE_SIZE=10485760
-          UPLOAD_DIR=./uploads
-          LOG_LEVEL=INFO
-          LOG_FILE=./logs/app.log
-          VOICE_ENABLED=false
-          DEFAULT_VOICE_PROVIDER=google_tts
-          JWT_SECRET_KEY=dev
-          JWT_ALGORITHM=HS256
-          ACCESS_TOKEN_EXPIRE_MINUTES=30
-          DEV_MODE=true
-          SKIP_API_VALIDATION=true
-          EOF
-          mkdir -p uploads logs
-
-      # 画像をビルド（CI用override併用 & フロントに API 基点を注入）
+      # 画像ビルド（フロントはビルド引数で VITE_API_URL を注入）
       - name: Build images
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build postgres redis
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
-            --build-arg VITE_API_URL=http://backend:8000 frontend
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build e2e
+            --build-arg VITE_API_URL=${VITE_API_URL} frontend
 
-      # まず DB/Redis 起動 → ヘルス待ち
+      # まず DB/Redis を起動
       - name: Start database layer
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d postgres redis
 
+      # 健康状態の待機（サービス名からCIDを取得してinspect）
       - name: Wait for postgres/redis health
         run: |
-          for i in {1..120}; do
-            PG=$(docker inspect -f '{{.State.Health.Status}}' ai-secretary-postgres 2>/dev/null || true)
-            RD=$(docker inspect -f '{{.State.Health.Status}}' ai-secretary-redis 2>/dev/null || true)
-            echo "postgres=$PG redis=$RD ($i/120)"
+          set -e
+          DC="docker compose -f docker-compose.yml -f docker-compose.ci.yml"
+          for i in $(seq 1 120); do
+            PG_CID=$($DC ps -q postgres)
+            RD_CID=$($DC ps -q redis)
+            PG=$([ -n "$PG_CID" ] && docker inspect -f '{{.State.Health.Status}}' "$PG_CID" || echo "")
+            RD=$([ -n "$RD_CID" ] && docker inspect -f '{{.State.Health.Status}}' "$RD_CID" || echo "")
+            echo "postgres=${PG:-unknown} redis=${RD:-unknown} (${i}/120)"
             [ "$PG" = "healthy" ] && [ "$RD" = "healthy" ] && break
             sleep 2
           done
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+          $DC ps
 
       # マイグレーション（スキーマ既存なら stamp で整合）
-      - name: Migrate DB (upgrade or stamp if schema already exists)
+      - name: Migrate DB (upgrade or stamp)
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head || \
           docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic stamp head
 
-      # バックエンド＆フロント起動（ホスト公開なし）
+      # アプリ起動（内部ネットワークのみ）
       - name: Start app services
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend frontend
 
-      # E2E をコンテナ内で実行（内部ネットワークで http://frontend を叩く）
+      # Playwright をコンテナで実行（E2E_BASE_URL=http://frontend）
       - name: Run Playwright tests in container
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm e2e
 
-      # ログ・レポート保存
+      # ログ収集
       - name: Docker ps & logs (always)
         if: always()
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
           docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-logs.txt || true
 
+      # E2Eレポートのアーティファクト保存
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -102,3 +84,8 @@ jobs:
           name: docker-logs
           path: docker-logs.txt
           retention-days: 7
+
+      # お片づけ
+      - name: Cleanup (always)
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
