@@ -5,6 +5,17 @@ from contextlib import asynccontextmanager
 from app.api.v1.api import api_router
 from app.core.config import settings
 
+import os
+from fastapi.middleware.cors import CORSMiddleware
+origins = [o.strip() for o in os.getenv("CORS_ORIGINS","").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins or [],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # アプリケーション起動時に実行される処理
