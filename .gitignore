@@ -144,3 +144,7 @@ htmlcov/
 # Pytest
 # =============================================================================
 .pytest_cache/
+# ignore real env files
+.env*
+!.env.example
+!.env.*.example
