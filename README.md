@@ -495,3 +495,9 @@ npm run dev
 ## 📄 ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。 
+
+## Environment files policy
+- 機密を含む `.env*` は **コミット禁止**。Gitに残すのは `*.example` のみ。
+- ローカルは `make setup-env` で `.env` を生成して使う（各自端末のみ保持）。
+- CI/本番は **GitHub Secrets や環境変数**で注入し、ファイルは置かない。
+- フロント側は `VITE_` 変数のみ（=公開情報）。秘密はバックエンドに置く。
