@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: ai_secretary
       POSTGRES_USER: ai_secretary_user
@@ -12,6 +12,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    volumes:
+      - ./database/init:/docker-entrypoint-initdb.d:ro
     networks:
       - ai-secretary-network
 
@@ -35,8 +37,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
       - CORS_ORIGINS=http://frontend,http://localhost:3000,http://localhost:5173
-      - SECRET_KEY=${SECRET_KEY}          # ★ 追加：Actionsのenvやローカルexportから注入
-      - GEMINI_API_KEY=${GEMINI_API_KEY}  # ★ 追加：同上
+      - SECRET_KEY=${SECRET_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +49,7 @@ services:
         echo 'Waiting for database...' &&
         sleep 5 &&
         cd /app &&
-        alembic upgrade head &&
+        alembic upgrade head || alembic stamp head &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000
       "
     healthcheck:
@@ -63,8 +65,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      # Viteの公開変数はビルド時に e2e.yml 側から --build-arg で注入します
-    environment: []  # ★ runtimeでは不要（静的配信）
+    environment: []
     depends_on:
       - backend
     networks:
@@ -83,9 +84,9 @@ services:
     networks:
       - ai-secretary-network
     environment:
-      E2E_BASE_URL: http://frontend  # 内部ネットワーク名でアクセス
-    entrypoint: []                               # ★ ここを空に（非対話で実行）
-    command: ["bash","-lc","./scripts/e2e-entry.sh"]  # ★ 直接スクリプト実行
+      E2E_BASE_URL: http://frontend
+    entrypoint: []
+    command: ["bash","-lc","./scripts/e2e-entry.sh"]
 
   schema-check:
     image: postgres:16-alpine
@@ -102,10 +103,14 @@ services:
       POSTGRES_PASSWORD: ai_secretary_password
     entrypoint: ["/bin/sh", "-lc"]
     command: >
-      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -tAc \
-      "SELECT 1 FROM information_schema.columns WHERE table_name='assistant_skills' AND column_name='updated_at'" \
+      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -tAc
+      "SELECT 1 FROM information_schema.columns WHERE table_name='assistant_skills' AND column_name='updated_at'"
       | grep -q 1
 
 networks:
   ai-secretary-network:
     driver: bridge
+
+volumes:
+  ai-secretary-postgres-data:
+    driver: local

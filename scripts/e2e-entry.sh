@@ -1,39 +1,35 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
-set -x
+set -euo pipefail
 
-# Compose が未設定ならデフォルト http://frontend
-BASE_URL="${E2E_BASE_URL:-http://frontend}"
-echo "E2E_BASE_URL=${E2E_BASE_URL:-<empty>}  BASE_URL=${BASE_URL}"
+echo ">> E2E entry"
+node -v
+npm -v
 
-# Windows ボリュームの遅さ/権限回避のため /tmp にコピーして実行
-rm -rf /tmp/frontend || true
-cp -r /workspace/frontend /tmp/
-cd /tmp/frontend
+# スクリプト自身の場所からリポジトリルートを導出
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
 
-# lock があれば ci、なければ install
-if [ -f package-lock.json ]; then
+# フロントが必ず見つかるようにチェック
+if [ ! -d "frontend" ] || [ ! -f "frontend/package.json" ]; then
+  echo "!! frontend ディレクトリが見つかりません: $REPO_ROOT/frontend"
+  echo "現在のツリー:"
+  ls -la
+  exit 1
+fi
+
+cd frontend
+
+# 必要パッケージが無ければ npm ci（キャッシュあっても検出）
+if [ ! -f node_modules/@playwright/test/package.json ] || [ ! -f node_modules/dotenv/package.json ]; then
+  echo ">> Installing deps with npm ci"
   npm ci
 else
-  npm install
+  echo ">> node_modules cache hit (skip npm ci)"
 fi
 
-# ブラウザ依存物を入れる
+# ブラウザは冪等インストール
 npx playwright install --with-deps
 
-# フロントが応答するまで待機
-for i in {1..60}; do
-  curl -fsS "${BASE_URL}/assistants" >/dev/null 2>&1 && break
-  sleep 2
-done
-
-# 実行（HTMLレポートも出力）
-E2E_BASE_URL="${BASE_URL}" npx playwright test --reporter=html,line
-
-# CIなどでレポートを収集できるよう、ワークスペースにコピー
-if [ -d "playwright-report" ]; then
-  mkdir -p /workspace/frontend
-  rm -rf /workspace/frontend/playwright-report || true
-  cp -r playwright-report /workspace/frontend/
-  chmod -R a+rX /workspace/frontend/playwright-report || true
-fi
+echo ">> Running Playwright tests"
+npx playwright test -c playwright.config.ts --reporter=line
