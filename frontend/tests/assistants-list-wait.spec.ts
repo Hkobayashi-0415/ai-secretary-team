@@ -1,15 +1,12 @@
-
+// frontend/tests/assistants-list-wait.spec.ts
 import { test, expect } from '@playwright/test';
-
-function pickList(json: any): any[] {
-  if (Array.isArray(json)) return json;
-  if (Array.isArray(json?.result)) return json.result;
-  if (Array.isArray(json?.items)) return json.items;
-  return [];
-}
+import { pickList } from './_utils';
 
 test('Assistants list renders same count as API (robust wait)', async ({ page, request }) => {
-  const res = await request.get('http://backend:8000/api/v1/assistants');
+  // ここも直 URL ではなく baseURL 相対 or fixture に寄せるのが理想
+  // request の baseURL が未設定なら、環境変数側に寄せる:
+  const apiBase = process.env.API_BASE ?? 'http://backend:8000';
+  const res = await request.get(`${apiBase}/api/v1/assistants`);
   const apiList = pickList(await res.json());
 
   await page.goto('/assistants');
