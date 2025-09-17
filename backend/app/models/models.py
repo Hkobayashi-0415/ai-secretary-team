@@ -1,11 +1,23 @@
 # backend/app/models/models.py
-from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, JSON, ForeignKey
-)
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.sql import func
 import uuid
+from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base, relationship
+
+from .base import Base
+
 
 Base = declarative_base()
 
@@ -45,3 +57,26 @@ class AIAssistant(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="assistants")
+    
+class Conversation(Base):
+    __tablename__ = "conversations"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    assistant_id = Column(UUID(as_uuid=True), ForeignKey("ai_assistants.id"), nullable=False)
+    title = Column(String(200), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    assistant = relationship("AIAssistant", backref="conversations")
+
+class Message(Base):
+    __tablename__ = "messages"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)      # 'user'|'assistant'|'system'|'tool'
+    content = Column(Text, nullable=False)
+    llm_model = Column(String(100), nullable=True)
+    token_count = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    conversation = relationship("Conversation", backref="messages")

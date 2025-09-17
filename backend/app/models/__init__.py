@@ -1,5 +1,7 @@
 # backend/app/models/__init__.py
-from .models import Base, User, AIAssistant
+from .base import Base
+from .models import User, AIAssistant
+
 from .phase2_models import (
     SkillDefinition,
     AssistantSkill,

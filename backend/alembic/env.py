@@ -9,14 +9,26 @@ from sqlalchemy.ext.asyncio import async_engine_from_config # <- 非同期エン
 from alembic import context
 from app.core.config import settings
 
-# この部分は先ほど編集していただいた通りです
-from app.models.models import Base
-# Ensure Phase2 models are imported so their tables register on Base.metadata
-from app.models import phase2_models  # noqa: F401
+# ---- Base はパッケージから（サブモジュール直参照を避ける）
+from app.models import Base
+
+# ---- ここがポイント：モデル定義を import してテーブル登録を発生させる
+# 既存モデル群（User, AIAssistant など）
+import app.models.models  # noqa: F401
+
+# Phase2 予定モデル群（存在しない環境でも壊れないように try/except）
+try:
+    import app.models.phase2_models  # noqa: F401
+except Exception:
+    pass
+
+# 既定ユーザー作成のフック（従来どおり）
 try:
     from app.scripts.ensure_default_user import ensure_default_user  # type: ignore
 except Exception:
     ensure_default_user = None  # type: ignore
+
+# Alembic のメタデータ
 target_metadata = Base.metadata
 
 # this is the Alembic Config object, which provides
