@@ -1,7 +1,7 @@
 # backend/app/core/config.py
 import os
 from dotenv import load_dotenv
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings,  SettingsConfigDict
 
 # .envファイルから環境変数を読み込みます
 load_dotenv()
@@ -22,7 +22,11 @@ class Settings(BaseSettings):
         """CORS_ORIGINSをリストに変換"""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
-    class Config:
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",          # 旧 Config.extra = "ignore"
+        case_sensitive=False     # 旧 Config.case_sensitive
+    )
 
 settings = Settings()
