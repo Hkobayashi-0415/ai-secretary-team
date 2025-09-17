@@ -1,9 +1,15 @@
-import { defineConfig } from '@playwright/test';
+// frontend/playwright.config.ts
+import 'dotenv/config';
+import { defineConfig, devices } from '@playwright/test';
+
+const FRONTEND_BASE = process.env.FRONTEND_BASE || 'http://frontend';
 
 export default defineConfig({
-  timeout: 45_000,
+  testDir: './tests',
+  timeout: 30_000,
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'http://frontend', // ← ここが重要
-    trace: 'retain-on-failure',
+    baseURL: FRONTEND_BASE, // page.goto('/...') 用
+    trace: 'on-first-retry',
   },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });
