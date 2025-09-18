@@ -5,17 +5,17 @@ from sqlalchemy import select
 from app.core.database import get_async_db
 from app.models.models import User
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter()
 
 @router.get("/default", status_code=status.HTTP_200_OK)
 async def get_or_create_default_user(db: AsyncSession = Depends(get_async_db)):
-    # 既存最古のユーザーを返す（あれば）
+    # 既存があればそれを返す（最古を採用）
     result = await db.execute(select(User).order_by(User.created_at.asc()).limit(1))
     user = result.scalars().first()
     if user:
-        return {"id": str(user.id), "username": user.username}
+        return {"id": str(user.id)}
 
-    # 無ければ必須列を満たして作成
+    # 無ければ最小必須列で作成
     user = User(
         username="default_admin",
         email="admin@example.com",
@@ -26,4 +26,4 @@ async def get_or_create_default_user(db: AsyncSession = Depends(get_async_db)):
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return {"id": str(user.id), "username": user.username}
+    return {"id": str(user.id)}

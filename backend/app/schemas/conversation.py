@@ -1,35 +1,50 @@
-from __future__ import annotations
+# Pydantic v1/v2 どちらでも動く互換ベース
+try:
+    from pydantic import BaseModel, ConfigDict
+    class ORMBase(BaseModel):
+        model_config = ConfigDict(from_attributes=True)
+except Exception:
+    from pydantic import BaseModel
+    class ORMBase(BaseModel):
+        class Config:
+            orm_mode = True
+
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel, Field
-from app.models.phase2_models import MessageRole
 
-class ConversationCreate(BaseModel):
+# --- Conversations ---
+class ConversationCreate(ORMBase):
     assistant_id: UUID
     user_id: Optional[UUID] = None
     title: Optional[str] = None
+    conversation_type: Optional[str] = None
+    status: Optional[str] = None
+    voice_enabled: Optional[bool] = False
+    voice_id: Optional[UUID] = None
+    metadata: Optional[dict] = None
 
-class ConversationRead(BaseModel):
+class ConversationOut(ORMBase):
     id: UUID
-    assistant_id: UUID
     user_id: UUID
+    assistant_id: Optional[UUID] = None
     title: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-    model_config = {"from_attributes": True}
-
-class MessageCreate(BaseModel):
-    conversation_id: Optional[UUID] = None
-    role: MessageRole = Field(default=MessageRole.user)
+# --- Messages ---
+class MessageCreate(ORMBase):
+    role: str
     content: str
+    content_type: Optional[str] = "text"
+    parent_id: Optional[UUID] = None
+    metadata: Optional[dict] = None
 
-class MessageRead(BaseModel):
+class MessageOut(ORMBase):
     id: UUID
     conversation_id: UUID
-    role: MessageRole
-    content: str
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
+    role: str
+    content: Optional[str] = None
+    content_type: Optional[str] = None
+    parent_id: Optional[UUID] = None
+    created_at: Optional[datetime] = None
