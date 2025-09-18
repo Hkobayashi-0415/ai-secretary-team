@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import uuid
 from app.core.database import get_async_db
-from app.models.models import Conversation, Message
+from app.models.phase2_models import Conversation, Message
 from app.services.llm.mock_llm import stream_mock_reply
 
 router = APIRouter()

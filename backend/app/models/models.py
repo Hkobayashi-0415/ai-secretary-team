@@ -14,12 +14,8 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base, relationship
-
+from sqlalchemy.orm import relationship
 from .base import Base
-
-
-Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
