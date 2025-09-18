@@ -2,8 +2,9 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import assistants, routing, conversations, users, chat
 
 api_router = APIRouter()
+
 api_router.include_router(assistants.router,    prefix="/assistants",    tags=["assistants"])
 api_router.include_router(routing.router,       prefix="/routing",       tags=["routing"])
 api_router.include_router(conversations.router, prefix="/conversations", tags=["conversations"])
-api_router.include_router(chat.router,                              tags=["chat"])
-api_router.include_router(users.router)  # prefixはusers.py側で定義済み
+api_router.include_router(users.router,         prefix="/users",         tags=["users"])
+api_router.include_router(chat.router,                                   tags=["chat"])
