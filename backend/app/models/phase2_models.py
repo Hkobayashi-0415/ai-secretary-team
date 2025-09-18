@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
+from enum import Enum
 
 from .models import Base  # 既存のBaseを使用
 
@@ -204,3 +205,8 @@ class UserPreference(Base, TimestampMixin):
     notification_settings = Column(JSONB)
     privacy_settings = Column(JSONB)
     default_assistant_id = Column(UUID(as_uuid=True), ForeignKey("assistants.id"))
+    
+class MessageRole(str, Enum):
+    user = "user"
+    assistant = "assistant"
+    system = "system"
