@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../store/chat';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
-
 export default function ChatPage({ conversationId }: { conversationId: string }) {
   const { messages, push } = useChatStore();
   const [input, setInput] = useState('');
@@ -16,7 +14,6 @@ export default function ChatPage({ conversationId }: { conversationId: string })
       if (data.type === 'assistant_start') {
         push({ id: crypto.randomUUID(), role: 'assistant', content: '' });
       } else if (data.type === 'token') {
-        // 直近assistantに追記（簡易実装）
         messages[messages.length - 1].content += data.text;
       } else if (data.type === 'assistant_end') {
         // noop

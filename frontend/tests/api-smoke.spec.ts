@@ -2,6 +2,7 @@
 import { test, expect } from './_fixtures';
 import { pickList } from './_utils';
 
+
 // 共通フィクスチャの `api` は baseURL=process.env.API_BASE で作成済み
 test('backend health is OK', async ({ api }) => {
   const res = await api.get('/health');
@@ -37,14 +38,25 @@ test.fixme('Chat smoke (HTTP only parts)', async ({ api, page }) => {
   await expect(page.getByPlaceholder('Type message...')).toBeVisible();
 });
 
-test("chat smoke: create conversation and post message", async ({ request }) => {
-  const a = await api(request, "/assistants");
-  const assistants = await a.get("").then(r => r.json());
-  const assistantId = assistants[0].id;
+test("chat smoke: create conversation and post message", async ({ api }) => {
+  // 本命：APIが無ければ作成して返す（サーバ側実装）
+  const uRes = await api.get("/api/v1/users/default");
+  expect(uRes.ok()).toBeTruthy();
+  const u = await uRes.json();
 
-  const u = await a.get("/users/default").then(r => r.json()); // 既存のdefault取得APIに合わせて
-  const conv = await a.post("/conversations", { data: { assistant_id: assistantId, user_id: u.id } }).then(r => r.json());
+  // アシスタント作成 → ID取得
+  const aRes = await api.post("/api/v1/assistants/", { data: { name: `WSBot ${Date.now()}` } });
+  expect(aRes.ok()).toBeTruthy();
+  const assistantId = (await aRes.json()).id;
 
-  const msg = await a.post(`/conversations/${conv.id}/messages`, { data: { role: "user", content: "hello" } }).then(r => r.json());
+  // 会話作成（user_id を明示送信）
+  const cRes = await api.post("/api/v1/conversations/", { data: { assistant_id: assistantId, user_id: u.id } });
+  expect(cRes.ok()).toBeTruthy();
+  const conv = await cRes.json();
+
+  // メッセージ投稿（ネスト）
+  const mRes = await api.post(`/api/v1/conversations/${conv.id}/messages`, { data: { role: "user", content: "hello" } });
+  expect(mRes.ok()).toBeTruthy();
+  const msg = await mRes.json();
   expect(msg.content).toBe("hello");
 });

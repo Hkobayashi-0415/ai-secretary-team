@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # CORS設定
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
     
+     # 既定ユーザーのデフォルト（任意で上書き可能）
+    DEFAULT_ADMIN_EMAIL: str = os.getenv("DEFAULT_ADMIN_EMAIL", "default_admin@example.com")
+    DEFAULT_ADMIN_NAME: str  = os.getenv("DEFAULT_ADMIN_NAME",  "default_admin")
+    
     @property
     def cors_origins_list(self) -> list[str]:
         """CORS_ORIGINSをリストに変換"""

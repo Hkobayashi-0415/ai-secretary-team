@@ -1,34 +1,34 @@
 # backend/alembic/env.py
+from __future__ import annotations
+
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context  # ★ 必ずここで読み込む
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config # <- 非同期エンジンを使います
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
+from alembic import context  # (冪等だが残っていてもOK)
 from app.core.config import settings
 
-# ---- Base はパッケージから（サブモジュール直参照を避ける）
+# ---- Base / モデル登録
 from app.models import Base
+import app.models.models        # noqa: F401  # User/AIAssistant
+import app.models.phase2_models # noqa: F401  # Conversation/Message
 
-# ---- ここがポイント：モデル定義を import してテーブル登録を発生させる
-# 既存モデル群（User, AIAssistant など）
-import app.models.models  # noqa: F401
+# Alembic Config object
+config = context.config
 
-# Phase2 予定モデル群（存在しない環境でも壊れないように try/except）
-try:
-    import app.models.phase2_models  # noqa: F401
-except Exception:
-    pass
+# sqlalchemy.url のフォールバック
+if config.get_main_option("sqlalchemy.url") in (None, ""):
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
-# 既定ユーザー作成のフック（従来どおり）
-try:
-    from app.scripts.ensure_default_user import ensure_default_user  # type: ignore
-except Exception:
-    ensure_default_user = None  # type: ignore
+# ロガー
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
-# Alembic のメタデータ
+# MetaData
 target_metadata = Base.metadata
 
 # this is the Alembic Config object, which provides
