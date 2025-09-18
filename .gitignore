@@ -148,3 +148,4 @@ htmlcov/
 .env*
 !.env.example
 !.env.*.example
+backend/nul
