@@ -1,7 +1,7 @@
 """Add default local user
 
 Revision ID: 002_add_default_local_user
-Revises: 21953cb59bd8
+Revises: users_assistants_tables
 Create Date: 2025-08-21 00:45:00.000000
 
 """
@@ -13,7 +13,7 @@ import uuid
 
 # revision identifiers, used by Alembic.
 revision: str = '002_add_default_local_user'
-down_revision: Union[str, None] = '21953cb59bd8'
+down_revision: Union[str, None] = 'users_assistants_tables'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -1,6 +1,6 @@
 """create conversations & messages (idempotent)
 
-Revision ID: 20250916_create_conversations_messages
+Revision ID: 20250916_cnv_msg
 Revises: 007_enable_vector_ext
 Create Date: 2025-09-16
 """
@@ -12,7 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.dialects import postgresql as psql
 
 # revision identifiers, used by Alembic.
-revision = "20250916_create_conversations_messages"
+revision = "20250916_cnv_msg"
 down_revision = "007_enable_vector_ext"
 branch_labels = None
 depends_on = None
@@ -44,7 +44,7 @@ def upgrade() -> None:
                 server_default=sa.text("gen_random_uuid()"),
                 nullable=False,
             ),
-            sa.Column("user_id", psql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("user_id", psql.UUID(as_uuid=True), sa.ForeignKey("assistants.id", ondelete="CASCADE"), nullable=False),
             # AIAssistant の実テーブル名に合わせる（多くは ai_assistants）
             sa.Column("assistant_id", psql.UUID(as_uuid=True), sa.ForeignKey("ai_assistants.id", ondelete="CASCADE"), nullable=False),
             sa.Column("title", sa.String(200)),
