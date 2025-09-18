@@ -1,115 +1,61 @@
-from __future__ import annotations
-
-import uuid
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_async_db
-from app.models.models import User
+from app.models.models import AIAssistant
 from app.models.phase2_models import Conversation, Message
 from app.schemas.conversation import (
-    ConversationRead,
     ConversationCreate,
-    MessageRead,
+    ConversationOut,
     MessageCreate,
+    MessageOut,
 )
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
+@router.post("/", response_model=ConversationOut, status_code=status.HTTP_201_CREATED)
+async def create_conversation(payload: ConversationCreate, db: AsyncSession = Depends(get_async_db)):
+    # assistant 存在チェック
+    res = await db.execute(select(AIAssistant).where(AIAssistant.id == payload.assistant_id))
+    assistant = res.scalars().first()
+    if not assistant:
+        raise HTTPException(status_code=404, detail="Assistant not found")
 
-@router.post("/", response_model=ConversationRead, status_code=status.HTTP_201_CREATED)
-async def create_conversation(
-    *,
-    db: AsyncSession = Depends(get_async_db),
-    body: ConversationCreate,
-):
-    # body.user_id が無い場合は既定ユーザーを補完
-    user_id = body.user_id
-    if user_id is None:
-        user_result = await db.execute(select(User).limit(1))
-        user = user_result.scalars().first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Default user not found")
-        user_id = user.id
+    # user_id 未指定なら assistant の所有者を採用
+    user_id = getattr(payload, "user_id", None) or assistant.user_id
 
-    conv = Conversation(user_id=user_id, assistant_id=body.assistant_id, title=body.title)
+    conv = Conversation(
+        user_id=user_id,
+        assistant_id=payload.assistant_id,
+        title=getattr(payload, "title", None),
+        conversation_type=getattr(payload, "conversation_type", None),
+        status=getattr(payload, "status", None),
+        voice_enabled=getattr(payload, "voice_enabled", False),
+        voice_id=getattr(payload, "voice_id", None),
+        conversation_metadata=getattr(payload, "metadata", None),
+    )
     db.add(conv)
     await db.commit()
     await db.refresh(conv)
     return conv
 
-
-@router.get("/", response_model=List[ConversationRead])
-async def list_conversations(
-    db: AsyncSession = Depends(get_async_db),
-    skip: int = 0,
-    limit: int = 50,
-):
-    result = await db.execute(
-        select(Conversation)
-        .order_by(Conversation.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-    )
-    return result.scalars().all()
-
-
-@router.get("/{conversation_id}", response_model=ConversationRead)
-async def get_conversation(
-    conversation_id: uuid.UUID,
-    db: AsyncSession = Depends(get_async_db),
-):
-    result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
-    conv = result.scalars().first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    return conv
-
-
-@router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_conversation(
-    conversation_id: uuid.UUID,
-    db: AsyncSession = Depends(get_async_db),
-):
-    result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
-    conv = result.scalars().first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    await db.delete(conv)
-    await db.commit()
-    return None
-
-
-# messages
-@router.get("/{conversation_id}/messages", response_model=List[MessageRead])
-async def list_messages(
-    conversation_id: uuid.UUID,
-    db: AsyncSession = Depends(get_async_db),
-):
-    result = await db.execute(
-        select(Message)
-        .where(Message.conversation_id == conversation_id)
-        .order_by(Message.created_at.asc())
-    )
-    return result.scalars().all()
-
-
-@router.post("/{conversation_id}/messages", response_model=MessageRead, status_code=status.HTTP_201_CREATED)
-async def create_message(
-    conversation_id: uuid.UUID,
-    body: MessageCreate,
-    db: AsyncSession = Depends(get_async_db),
-):
-    # 会話の存在確認
+@router.post("/{conversation_id}/messages", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
+async def post_message(conversation_id: str, payload: MessageCreate, db: AsyncSession = Depends(get_async_db)):
+    # 会話存在チェック（なければ 404）
     res = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
     conv = res.scalars().first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    msg = Message(conversation_id=conversation_id, role=body.role, content=body.content)
+    msg = Message(
+        conversation_id=conv.id,
+        role=payload.role,
+        content=payload.content,
+        content_type=getattr(payload, "content_type", "text"),
+        parent_id=getattr(payload, "parent_id", None),
+        message_metadata=getattr(payload, "metadata", None),
+    )
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
