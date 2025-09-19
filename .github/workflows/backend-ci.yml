@@ -38,11 +38,12 @@ jobs:
           ls -la backend/alembic || true
           ls -la backend/alembic/versions || true
 
+      # No chmod/dos2unix needed; run via Python for portability
+
       - name: Schema guards (Alembic & models)
         run: |
           set -euxo pipefail
-          chmod +x scripts/ci/check_alembic_single_head.sh
-          scripts/ci/check_alembic_single_head.sh
+          python3 scripts/ci/check_alembic_single_head.py
           python3 scripts/ci/check_revision_ids.py
           python3 scripts/ci/check_duplicate_tablenames.py
           python3 scripts/ci/check_reserved_names.py
