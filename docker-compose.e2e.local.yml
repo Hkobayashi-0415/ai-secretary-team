@@ -1,0 +1,5 @@
+networks:
+  ai-secretary-network:
+    external: true
+    name: ai-secretary-team_ai-secretary-network
+

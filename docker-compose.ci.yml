@@ -93,6 +93,4 @@ services:
 
 networks:
   ai-secretary-network:
-    # 既存スタックのネットワークを使い回す（Composeに作成/削除させない）
-    external: true
-    name: ai-secretary-team_ai-secretary-network
+    # CIではComposeが専用ネットワークを作成/削除する（外部ネットワークには依存しない）
