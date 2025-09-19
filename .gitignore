@@ -149,3 +149,9 @@ htmlcov/
 !.env.example
 !.env.*.example
 backend/nul
+# Debug / ad-hoc artifacts
+_debug/
+test-results/
+repo-*.txt
+repo-tree*.txt
+project_tree*.txt
