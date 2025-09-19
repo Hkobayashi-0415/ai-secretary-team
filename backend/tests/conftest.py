@@ -1,15 +1,17 @@
+# backend/tests/conftest.py
 import os
+import uuid
 import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
+from sqlalchemy import select
 
 from app.main import app
 from app.core.database import get_async_db
-from app.models.models import Base
+from app.models.models import Base, User
 
 # DOCKERIZED=1 のときは docker ネットワーク上の postgres を使う
 DEFAULT_URL_DOCKER = "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary_test"
@@ -33,19 +35,35 @@ def event_loop(request) -> Generator:
 
 @pytest.fixture(scope="function")
 async def db() -> AsyncGenerator[AsyncSession, None]:
-    # まず拡張を有効化（権限がない環境でも無視して続行）
+    # 拡張を有効化（権限がない環境でも無視して続行）→スキーマ作成
     async with engine.begin() as conn:
         try:
             await conn.exec_driver_sql('CREATE EXTENSION IF NOT EXISTS "vector";')
         except Exception:
             pass
-        # その後テーブル作成
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestingSessionLocal() as session:
+        # ---- デフォルトユーザーを冪等に投入（テストごとに必要）----
+        exists = await session.execute(
+            select(User).where(User.email == "admin@example.com")
+        )
+        if exists.scalars().first() is None:
+            session.add(
+                User(
+                    id=uuid.uuid4(),
+                    username="default_admin",
+                    email="admin@example.com",
+                    password_hash="dev-hash",
+                    is_active=True,
+                    is_verified=True,
+                )
+            )
+            await session.commit()
+        # ----------------------------------------------------------
         yield session
 
-    # 後片付け
+    # 後片付け：テーブルドロップ
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -53,8 +71,10 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
 async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db
+
     app.dependency_overrides[get_async_db] = override_get_db
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
+
     app.dependency_overrides.clear()

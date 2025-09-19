@@ -1,6 +1,6 @@
 """Create users and assistants tables
 
-Revision ID: 21953cb59bd8
+Revision ID: "users_assistants_tables"
 Revises: 
 Create Date: 2025-08-18 12:37:48.661844
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '21953cb59bd8'
+revision: str = 'users_assistants_tables'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

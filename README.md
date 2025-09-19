@@ -501,3 +501,22 @@ npm run dev
 - ローカルは `make setup-env` で `.env` を生成して使う（各自端末のみ保持）。
 - CI/本番は **GitHub Secrets や環境変数**で注入し、ファイルは置かない。
 - フロント側は `VITE_` 変数のみ（=公開情報）。秘密はバックエンドに置く。
+## Quick Checks
+
+- Smoke (API):
+  - `docker compose -f docker-compose.yml up -d --build postgres redis backend`
+  - `MSYS_NO_PATHCONV=1 docker compose -f docker-compose.yml exec backend sh -lc 'cd /app && ./scripts/smoke.sh'`
+
+- E2E (Playwright):
+  - CI 同等（専用ネットワークで実行）:
+    - `docker compose -f docker-compose.yml up -d --build postgres redis backend frontend`
+    - `docker compose -f docker-compose.ci.yml build e2e`
+    - `docker compose -f docker-compose.ci.yml run --rm --no-deps e2e`
+  - ローカル既存スタックのネットワークを再利用（より実稼働に近い）:
+    - `docker compose -f docker-compose.yml up -d postgres redis backend frontend`
+    - `docker compose -f docker-compose.ci.yml -f docker-compose.e2e.local.yml build e2e`
+    - `docker compose -f docker-compose.ci.yml -f docker-compose.e2e.local.yml run --rm --no-deps e2e`
+
+Notes:
+- Alembic runs at startup via `/app/entrypoint.sh` and will stop the container on failure.
+- Git Bash users: prefer the `MSYS_NO_PATHCONV=1` prefix when exec-ing absolute paths.

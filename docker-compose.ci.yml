@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes
+    command: ["redis-server", "--appendonly", "yes"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -49,7 +49,8 @@ services:
         echo 'Waiting for database...' &&
         sleep 5 &&
         cd /app &&
-        alembic upgrade head || alembic stamp head &&
+        (alembic current || alembic stamp head) &&
+        alembic upgrade head &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000
       "
     healthcheck:
@@ -67,50 +68,29 @@ services:
       dockerfile: Dockerfile
     environment: []
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - ai-secretary-network
 
+  # ここを「毎回 npm/apt 走らない」方式に変更
   e2e:
-    image: mcr.microsoft.com/playwright:v1.55.0-jammy
-    working_dir: /workspace
-    volumes:
-      - ./:/workspace
+    build:
+      context: .
+      dockerfile: e2e/Dockerfile
+    working_dir: /workspace/frontend
     depends_on:
       backend:
         condition: service_healthy
       frontend:
         condition: service_started
+    environment:
+      CI: "true"
+      FRONTEND_URL: http://frontend          # ← 追加（または置き換え）
+      API_BASE: http://backend:8000          # ← あなたの config が参照している
     networks:
       - ai-secretary-network
-    environment:
-      E2E_BASE_URL: http://frontend
-    entrypoint: []
-    command: ["bash","-lc","./scripts/e2e-entry.sh"]
-
-  schema-check:
-    image: postgres:16-alpine
-    depends_on:
-      postgres:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-    networks:
-      - ai-secretary-network
-    environment:
-      POSTGRES_DB: ai_secretary
-      POSTGRES_USER: ai_secretary_user
-      POSTGRES_PASSWORD: ai_secretary_password
-    entrypoint: ["/bin/sh", "-lc"]
-    command: >
-      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -tAc
-      "SELECT 1 FROM information_schema.columns WHERE table_name='assistant_skills' AND column_name='updated_at'"
-      | grep -q 1
 
 networks:
   ai-secretary-network:
-    driver: bridge
-
-volumes:
-  ai-secretary-postgres-data:
-    driver: local
+    # CIではComposeが専用ネットワークを作成/削除する（外部ネットワークには依存しない）

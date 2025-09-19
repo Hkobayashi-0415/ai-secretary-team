@@ -1,49 +1,29 @@
 # backend/app/main.py
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.api import api_router
-from app.core.config import settings
-import os
 
+# Import models so metadata (tables) are registered with SQLAlchemy
+from app.models import models as _models  # noqa: F401
+from app.models import phase2_models as _phase2_models  # noqa: F401
 
-def _cors_origins() -> list[str]:
-    # settings 優先。なければ環境変数 CORS_ORIGINS (カンマ区切り) を利用
-    if getattr(settings, "cors_origins_list", None):
-        return settings.cors_origins_list
-    return [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+app = FastAPI(title="AI Secretary Team API", version="1.0.0")
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("アプリケーションを起動します...")
-    yield
-    print("アプリケーションを終了します...")
-
-
-app = FastAPI(
-    title="AI秘書チーム・プラットフォーム",
-    description="AI秘書チームによる統合的なプロジェクト管理・ワークフロー・知識管理プラットフォーム",
-    version="1.0.0",
-    lifespan=lifespan,
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# --- CORS（1カ所だけで設定する）---
-origins = _cors_origins()
-if origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-# -----------------------------------
 
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+
+# v1 routes
 app.include_router(api_router, prefix="/api/v1")
 
-
-@app.get("/health", tags=["System"])
-async def health_check():
-    return {"status": "healthy"}

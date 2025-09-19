@@ -66,26 +66,19 @@ services:
       - DEFAULT_USER_ID=11111111-1111-1111-1111-111111111111
     volumes:
       - ./backend:/app
+      - ./scripts:/app/scripts:ro
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      sh -c "
-        echo 'Waiting for database...' &&
-        sleep 5 &&
-        cd /app &&
-        (alembic current || alembic stamp head) &&
-        alembic upgrade head &&  
-        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-      "
+    command: ["/bin/sh","-lc","/app/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     networks:
       - ai-secretary-network
 

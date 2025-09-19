@@ -1,6 +1,6 @@
 # backend/app/schemas/assistant.py
 import uuid
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -32,7 +32,7 @@ class AssistantUpdateFinal(BaseModel):
     voice_id: Optional[uuid.UUID] = None
     avatar_id: Optional[uuid.UUID] = None
     
-    @validator('*', pre=True)
+    @field_validator('*', mode='before')
     def empty_str_to_none(cls, v):
         """空文字列をNoneに変換"""
         if v == '':
@@ -48,8 +48,7 @@ class Assistant(AssistantBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # エイリアス（互換性のため）
 AssistantResponse = Assistant

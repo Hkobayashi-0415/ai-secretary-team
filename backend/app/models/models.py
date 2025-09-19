@@ -1,13 +1,21 @@
 # backend/app/models/models.py
-from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, JSON, ForeignKey
-)
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.sql import func
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime
 
-Base = declarative_base()
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from .base import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -45,3 +53,4 @@ class AIAssistant(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="assistants")
+    

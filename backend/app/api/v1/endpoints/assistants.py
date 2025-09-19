@@ -31,7 +31,7 @@ async def create_assistant(
     # スキーマからモデルへデータを展開してインスタンス化
     db_assistant = AIAssistant(
         user_id=user.id,
-        **assistant_in.dict()
+        **assistant_in.model_dump()
     )
     db.add(db_assistant)
     await db.commit()

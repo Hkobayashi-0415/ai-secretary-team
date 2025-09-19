@@ -2,7 +2,7 @@
 from alembic import op
 
 revision = "007_enable_vector_ext"
-down_revision = "004_add_sample_data"
+down_revision = "003_add_phase2_remaining_tables"
 branch_labels = None
 depends_on = None
 

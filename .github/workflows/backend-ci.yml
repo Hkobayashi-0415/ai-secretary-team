@@ -1,0 +1,49 @@
+name: backend-ci
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'scripts/ci/**'
+      - '.github/workflows/**'
+  push:
+    branches: [ main, feat/**, fix/**, chore/** ]
+    paths:
+      - 'backend/**'
+      - 'scripts/ci/**'
+      - '.github/workflows/**'
+
+jobs:
+  schema-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Alembic は heads チェックにだけ使うので最小インストール
+      - name: Install Alembic
+        run: |
+          python -m pip install --upgrade pip
+          pip install alembic
+
+      - name: Show env and tree (debug)
+        run: |
+          set -euxo pipefail
+          python -V
+          pip --version
+          ls -la
+          ls -la backend/alembic || true
+          ls -la backend/alembic/versions || true
+
+      # No chmod/dos2unix needed; run via Python for portability
+
+      - name: Schema guards (Alembic & models)
+        run: |
+          set -euxo pipefail
+          python3 scripts/ci/check_alembic_single_head.py
+          python3 scripts/ci/check_revision_ids.py
+          python3 scripts/ci/check_duplicate_tablenames.py
+          python3 scripts/ci/check_reserved_names.py
