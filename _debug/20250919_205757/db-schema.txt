@@ -1,0 +1,80 @@
+        version_num        
+---------------------------
+ 008_widen_alembic_version
+(1 row)
+
+                                                              Table "public.conversations"
+      Column       |           Type           | Collation | Nullable |           Default           | Storage  | Compression | Stats target | Description 
+-------------------+--------------------------+-----------+----------+-----------------------------+----------+-------------+--------------+-------------
+ id                | uuid                     |           | not null | gen_random_uuid()           | plain    |             |              | 
+ user_id           | uuid                     |           | not null |                             | plain    |             |              | 
+ assistant_id      | uuid                     |           | not null |                             | plain    |             |              | 
+ title             | character varying(255)   |           |          |                             | extended |             |              | 
+ conversation_type | character varying(50)    |           |          | 'chat'::character varying   | extended |             |              | 
+ status            | character varying(20)    |           |          | 'active'::character varying | extended |             |              | 
+ voice_enabled     | boolean                  |           | not null | true                        | plain    |             |              | 
+ voice_id          | uuid                     |           |          |                             | plain    |             |              | 
+ metadata          | jsonb                    |           |          |                             | extended |             |              | 
+ created_at        | timestamp with time zone |           | not null | now()                       | plain    |             |              | 
+ updated_at        | timestamp with time zone |           | not null | now()                       | plain    |             |              | 
+ started_at        | timestamp with time zone |           |          |                             | plain    |             |              | 
+ ended_at          | timestamp with time zone |           |          |                             | plain    |             |              | 
+Indexes:
+    "conversations_pkey" PRIMARY KEY, btree (id)
+    "idx_conversations_active_only" btree (user_id, created_at DESC) WHERE status::text = 'active'::text
+    "idx_conversations_assistant_id" btree (assistant_id)
+    "idx_conversations_created_at" btree (created_at)
+    "idx_conversations_metadata" gin (metadata)
+    "idx_conversations_status" btree (status)
+    "idx_conversations_type" btree (conversation_type)
+    "idx_conversations_user_id" btree (user_id)
+    "idx_conversations_user_status_created" btree (user_id, status, created_at DESC)
+    "idx_conversations_voice_enabled" btree (voice_enabled)
+Check constraints:
+    "conversations_conversation_type_check" CHECK (conversation_type::text = ANY (ARRAY['chat'::character varying, 'research'::character varying, 'document_creation'::character varying, 'workflow'::character varying]::text[]))
+    "conversations_status_check" CHECK (status::text = ANY (ARRAY['active'::character varying, 'archived'::character varying, 'deleted'::character varying]::text[]))
+Foreign-key constraints:
+    "conversations_assistant_id_fkey" FOREIGN KEY (assistant_id) REFERENCES assistants(id) ON DELETE CASCADE
+    "conversations_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    "conversations_voice_id_fkey" FOREIGN KEY (voice_id) REFERENCES voices(id)
+Referenced by:
+    TABLE "files" CONSTRAINT "files_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+    TABLE "messages" CONSTRAINT "messages_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+Triggers:
+    update_conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+Access method: heap
+
+                                                                Table "public.messages"
+      Column       |           Type           | Collation | Nullable |          Default          | Storage  | Compression | Stats target | Description 
+-------------------+--------------------------+-----------+----------+---------------------------+----------+-------------+--------------+-------------
+ id                | uuid                     |           | not null | gen_random_uuid()         | plain    |             |              | 
+ conversation_id   | uuid                     |           | not null |                           | plain    |             |              | 
+ role              | character varying(20)    |           | not null |                           | extended |             |              | 
+ content           | text                     |           | not null |                           | extended |             |              | 
+ content_type      | character varying(20)    |           |          | 'text'::character varying | extended |             |              | 
+ metadata          | jsonb                    |           |          |                           | extended |             |              | 
+ parent_message_id | uuid                     |           |          |                           | plain    |             |              | 
+ created_at        | timestamp with time zone |           | not null | now()                     | plain    |             |              | 
+ updated_at        | timestamp with time zone |           | not null | now()                     | plain    |             |              | 
+Indexes:
+    "messages_pkey" PRIMARY KEY, btree (id)
+    "idx_messages_content_type" btree (content_type)
+    "idx_messages_conversation_id" btree (conversation_id)
+    "idx_messages_conversation_role_created" btree (conversation_id, role, created_at)
+    "idx_messages_created_at" btree (created_at)
+    "idx_messages_metadata" gin (metadata)
+    "idx_messages_parent_id" btree (parent_message_id)
+    "idx_messages_role" btree (role)
+Check constraints:
+    "messages_content_type_check" CHECK (content_type::text = ANY (ARRAY['text'::character varying, 'image'::character varying, 'file'::character varying, 'audio'::character varying]::text[]))
+    "messages_role_check" CHECK (role::text = ANY (ARRAY['user'::character varying, 'assistant'::character varying, 'system'::character varying]::text[]))
+Foreign-key constraints:
+    "messages_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+    "messages_parent_message_id_fkey" FOREIGN KEY (parent_message_id) REFERENCES messages(id)
+Referenced by:
+    TABLE "files" CONSTRAINT "files_message_id_fkey" FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE SET NULL
+    TABLE "messages" CONSTRAINT "messages_parent_message_id_fkey" FOREIGN KEY (parent_message_id) REFERENCES messages(id)
+Triggers:
+    update_messages_updated_at BEFORE UPDATE ON messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+Access method: heap
+

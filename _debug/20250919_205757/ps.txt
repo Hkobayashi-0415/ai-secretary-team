@@ -1,0 +1,6 @@
+NAME                                     IMAGE                                        COMMAND                    SERVICE    CREATED       STATUS                   PORTS
+ai-secretary-backend                     ai-secretary-team-backend                    "sh -c '\n  echo 'Wai…"   backend    2 hours ago   Up 2 hours (healthy)     0.0.0.0:8000->8000/tcp
+ai-secretary-frontend                    ai-secretary-team-frontend                   "/docker-entrypoint.…"    frontend   3 hours ago   Exited (0) 3 hours ago   
+ai-secretary-postgres                    pgvector/pgvector:pg16                       "docker-entrypoint.s…"    postgres   2 hours ago   Up 2 hours (healthy)     0.0.0.0:5432->5432/tcp
+ai-secretary-redis                       redis:7-alpine                               "docker-entrypoint.s…"    redis      9 hours ago   Up 9 hours (healthy)     0.0.0.0:6379->6379/tcp
+ai-secretary-team-e2e-run-c7cdb9456de6   mcr.microsoft.com/playwright:v1.55.0-jammy   "/bin/bash -lc bash …"    e2e        3 days ago    Up 3 days                

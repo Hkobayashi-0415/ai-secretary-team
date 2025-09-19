@@ -1,0 +1,6 @@
+ Container ai-secretary-postgres  Running
+ Container ai-secretary-redis  Running
+{
+  "app.models.phase2_models": "OK",
+  "app.api.v1.api": "OK"
+}

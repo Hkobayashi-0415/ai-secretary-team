@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes
+    command: ["redis-server", "--appendonly", "yes"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -49,7 +49,8 @@ services:
         echo 'Waiting for database...' &&
         sleep 5 &&
         cd /app &&
-        alembic upgrade head || alembic stamp head &&
+        (alembic current || alembic stamp head) &&
+        alembic upgrade head &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000
       "
     healthcheck:
@@ -67,12 +68,16 @@ services:
       dockerfile: Dockerfile
     environment: []
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - ai-secretary-network
 
+  # ここを「毎回 npm/apt 走らない」方式に変更
   e2e:
-    image: mcr.microsoft.com/playwright:v1.55.0-jammy
+    build:
+      context: .
+      dockerfile: e2e/Dockerfile
     working_dir: /workspace/frontend
     depends_on:
       backend:
@@ -81,23 +86,13 @@ services:
         condition: service_started
     environment:
       CI: "true"
-      # フロントの baseURL / API の両方を渡しておくと便利
-      E2E_BASE_URL: http://frontend
-      API_BASE: http://backend:8000
-    volumes:
-      - ./frontend:/workspace/frontend
-      - ./scripts:/workspace/scripts:ro
-      - npm-cache:/root/.npm
-      - playwright-cache:/root/.cache/ms-playwright
-      - node-modules:/workspace/frontend/node_modules
-    command: ["bash","-lc","../scripts/e2e-entry.sh"]
+      FRONTEND_URL: http://frontend          # ← 追加（または置き換え）
+      API_BASE: http://backend:8000          # ← あなたの config が参照している
     networks:
       - ai-secretary-network
 
-volumes:
-  ai-secretary-postgres-data:
-    driver: local
-  # ⬇ 追加
-  npm-cache:
-  playwright-cache:
-  node-modules:
+networks:
+  ai-secretary-network:
+    # 既存スタックのネットワークを使い回す（Composeに作成/削除させない）
+    external: true
+    name: ai-secretary-team_ai-secretary-network

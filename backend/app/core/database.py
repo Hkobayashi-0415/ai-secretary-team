@@ -1,44 +1,41 @@
 # backend/app/core/database.py
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from app.core.config import settings
-import sys
 import os
+from typing import AsyncGenerator
 
-# --- 診断コード ---
-# アプリケーションが実際に認識しているDATABASE_URLを、起動時にコンソールへ出力させます。
-# これで、環境変数が正しく渡っているかを確実に確認できます。
-db_url = settings.DATABASE_URL or ""
-
-# auto-upgrade sync DSN to async if needed (postgresql -> postgresql+asyncpg)
-if db_url.startswith("postgresql://"):
-    upgraded = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    print("[database] INFO: Upgrading DATABASE_URL to asyncpg driver", file=sys.stderr)
-    settings.DATABASE_URL = upgraded
-    db_url = upgraded
-
-if os.getenv("LOG_DB_URL", "0") == "1" and os.getenv("ENVIRONMENT", "").lower() != "production":
-    print("=" * 50, file=sys.stderr)
-    print("DEBUG: Attempting to connect with DATABASE_URL:", file=sys.stderr)
-    print(f"'{db_url}'", file=sys.stderr)
-    print("=" * 50, file=sys.stderr)
-# --- 診断コードここまで ---
-
-engine = create_async_engine(
-    db_url,
-    echo=True,
-    future=True
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    async_sessionmaker,
+    AsyncSession,
 )
 
-AsyncSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
+# 既定の接続先（compose のサービス名に合わせる）
+# 必要なら .env / 環境変数で DATABASE_URL を上書き
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://ai_secretary_user:password@postgres:5432/ai_secretary",
+)
+
+SQL_ECHO = os.getenv("SQL_ECHO", "").lower() in ("1", "true", "yes")
+
+# プール監視と future=True を有効化
+async_engine = create_async_engine(
+    DATABASE_URL,
+    echo=SQL_ECHO,
+    pool_pre_ping=True,
+    future=True,
+)
+
+# セッションファクトリ（依存関係注入で使用）
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
 )
 
-async def get_async_db() -> AsyncSession:
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    FastAPI の Depends 用: 非同期セッションを供給
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session

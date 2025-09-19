@@ -1,0 +1,11 @@
+== current ==
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+008_widen_alembic_version (head)
+== heads ==
+008_widen_alembic_version (head)
+== history (20) ==
+usage: alembic [-h] [--version] [-c CONFIG] [-n NAME] [-x X] [--raiseerr] [-q]
+               {branches,check,current,downgrade,edit,ensure_version,heads,history,init,list_templates,merge,revision,show,stamp,upgrade}
+               ...
+alembic: error: unrecognized arguments: -20

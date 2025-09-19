@@ -1,5 +1,3 @@
 # app/models/base.py
-from sqlalchemy.orm import DeclarativeBase
-
-class Base(DeclarativeBase):
-    pass
+# Re-export unified Base from app.db.base
+from app.db.base import Base
