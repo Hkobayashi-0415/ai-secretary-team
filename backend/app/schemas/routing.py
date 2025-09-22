@@ -1,7 +1,11 @@
-from pydantic import BaseModel
 from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class RoutingRequest(BaseModel):
     """ルーティングリクエストのスキーマ"""
+
     prompt: str
     assistant_id: UUID
+    conversation_id: UUID | None = None

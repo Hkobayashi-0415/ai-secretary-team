@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route,} from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout';
 import AssistantsPage from './pages/AssistantsPage';
+import RoutingDebugPage from './pages/RoutingDebugPage';
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/assistants" element={<AssistantsPage />} />
+            <Route path="/routing" element={<RoutingDebugPage />} />
             {/* <Route path="*" element={<NotFoundPage />} /> 
               将来的に「v7_relativeSplatPath」の警告に対応するために、
               このような「*」を使ったルートも考慮に入れておくと良いですね。
