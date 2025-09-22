@@ -13,6 +13,7 @@ const Sidebar: React.FC = () => {
           {/* <li><NavLink to="/projects" style={itemStyle}>Projects</NavLink></li> */}
           {/* <li><NavLink to="/workflows" style={itemStyle}>Workflows</NavLink></li> */}
           <li><NavLink to="/assistants" style={itemStyle}>AI Assistants</NavLink></li>
+          <li><NavLink to="/routing" style={itemStyle}>Routing Inspector</NavLink></li>
           {/* <li><NavLink to="/settings" style={itemStyle}>Settings</NavLink></li> */}
         </ul>
       </div>
