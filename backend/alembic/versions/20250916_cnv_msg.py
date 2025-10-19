@@ -64,6 +64,8 @@ def upgrade() -> None:
 
     # --- messages ---
     if not _table_exists("messages"):
+        # Avoid implicit CREATE TYPE by SQLAlchemy for existing enum
+        role_enum = sa.Enum("user", "assistant", "system", name="message_role", create_type=False)
         op.create_table(
             "messages",
             sa.Column(
@@ -79,7 +81,7 @@ def upgrade() -> None:
                 sa.ForeignKey("conversations.id", ondelete="CASCADE"),
                 nullable=False,
             ),
-            sa.Column("role", sa.Enum("user", "assistant", "system", name="message_role"), nullable=False),
+            sa.Column("role", role_enum, nullable=False),
             sa.Column("content", sa.Text),
             sa.Column("content_type", sa.String(50)),
             sa.Column("parent_id", psql.UUID(as_uuid=True), sa.ForeignKey("messages.id")),
@@ -92,4 +94,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS messages CASCADE")
     op.execute("DROP TABLE IF EXISTS conversations CASCADE")
-
