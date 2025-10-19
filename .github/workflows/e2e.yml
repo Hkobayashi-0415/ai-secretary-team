@@ -23,9 +23,11 @@ jobs:
       - name: Build images
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build postgres redis
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build --build-arg CI_BUILD_ID=${GITHUB_SHA} backend
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
             --build-arg VITE_API_URL=${VITE_API_URL} frontend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
+            --build-arg E2E_VERSION=${GITHUB_SHA} e2e
 
       # まず DB/Redis を起動
       - name: Start database layer
