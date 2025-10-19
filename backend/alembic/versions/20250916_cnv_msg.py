@@ -52,15 +52,8 @@ def upgrade() -> None:
         )
 
     # --- message_role enum ---
-    if not _enum_exists("message_role"):
-        op.execute(
-            sa.text(
-                "DO $$ BEGIN "
-                "IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_role') THEN "
-                "CREATE TYPE message_role AS ENUM ('user','assistant','system'); "
-                "END IF; END $$;"
-            )
-        )
+    # Create enum atomically; avoids race across concurrent runs
+    op.execute("CREATE TYPE IF NOT EXISTS message_role AS ENUM ('user','assistant','system')")
 
     # --- messages ---
     if not _table_exists("messages"):
