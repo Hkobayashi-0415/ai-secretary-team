@@ -51,7 +51,7 @@ jobs:
       - name: Migrate DB (upgrade)
         run: |
           set -e
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend sh -lc "cd /app/backend && alembic -c alembic.ini upgrade head && alembic -c alembic.ini current"
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend sh -lc "cd /app/backend && alembic -c alembic.ini stamp base && alembic -c alembic.ini upgrade head && alembic -c alembic.ini current"
 
       # アプリ起動（内部ネットワークのみ）
       - name: Start app services
