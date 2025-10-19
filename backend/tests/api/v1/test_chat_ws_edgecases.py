@@ -50,7 +50,11 @@ def _override_db_factory(test_db_url: str):
 def test_ws_chat_empty_message_emits_error():
     test_db_url = os.getenv(
         "TEST_DATABASE_URL",
-        "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test",
+        (
+            "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test"
+            if os.getenv("DOCKERIZED") == "1"
+            else "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db"
+        ),
     )
     app.dependency_overrides[get_async_db] = _override_db_factory(test_db_url)
 
@@ -75,7 +79,11 @@ def test_ws_chat_empty_message_emits_error():
 def test_ws_chat_invalid_conversation_id_closes_with_4404():
     test_db_url = os.getenv(
         "TEST_DATABASE_URL",
-        "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test",
+        (
+            "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres_test:5432/ai_secretary_test"
+            if os.getenv("DOCKERIZED") == "1"
+            else "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db"
+        ),
     )
     app.dependency_overrides[get_async_db] = _override_db_factory(test_db_url)
 
@@ -87,4 +95,3 @@ def test_ws_chat_invalid_conversation_id_closes_with_4404():
         assert exc.value.code == 4404
 
     app.dependency_overrides.pop(get_async_db, None)
-
