@@ -7,8 +7,13 @@ test('conversations -> new -> chat -> send', async ({ page }) => {
   await expect(cta).toBeVisible()
   await cta.click()
 
-  // navigates to /chat/:id (ChatPage handles /chat/new → /chat/:id)
+  // navigates to /chat/:id (ChatPage handles /chat/new -> /chat/:id)
   await expect(page).toHaveURL(/\/chat\/.+/, { timeout: 15000 })
+
+  // deterministic precondition: ChatPage renders an assistant bubble (fallback 'Ready.' or history)
+  // ensure it's present before sending to avoid races on slower CI runners
+  const preAsst = page.locator('[data-testid="assistant-msg"]').first()
+  await expect(preAsst).toBeVisible({ timeout: 15000 })
 
   // send a message
   const input = page.getByPlaceholder(/Type message/i)
@@ -16,6 +21,6 @@ test('conversations -> new -> chat -> send', async ({ page }) => {
   await page.getByRole('button', { name: /^Send$/ }).click()
 
   // assert an assistant message bubble appears (WS or optimistic)
-  const asstMsg = page.locator('[data-testid="assistant-msg"]')
+  const asstMsg = page.locator('[data-testid="assistant-msg"]').first()
   await expect(asstMsg.first()).toBeVisible({ timeout: 15000 })
 })
