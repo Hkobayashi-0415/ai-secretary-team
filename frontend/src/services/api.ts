@@ -62,3 +62,10 @@ export async function createConversation(assistantId: string, title?: string): P
     body: JSON.stringify({ assistant_id: assistantId, title: title || 'New Conversation' }),
   });
 }
+
+export async function listConversations(limit: number = 20, offset: number = 0): Promise<any[]> {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return http<any[]>(`/conversations/?${params.toString()}`);
+}

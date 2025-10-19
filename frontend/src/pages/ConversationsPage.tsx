@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { listAssistants, createAssistant, createConversation } from '../services/api';
+import { listAssistants, createAssistant, createConversation, listConversations } from '../services/api';
 
 type Conversation = {
   id: string;
@@ -57,6 +57,12 @@ export default function ConversationsPage() {
               const conv = await createConversation(assistantId, 'New Conversation');
               if (conv?.id) {
                 navigate(`/chat/${conv.id}`);
+                return;
+              }
+              // fallback: navigate to the most recent conversation if exists
+              const convs = await listConversations(1, 0);
+              if (convs?.[0]?.id) {
+                navigate(`/chat/${convs[0].id}`);
                 return;
               }
               throw new Error('Failed to create conversation');
