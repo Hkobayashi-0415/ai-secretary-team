@@ -42,3 +42,23 @@ export async function getAssistant(assistantId: string): Promise<any> {
   return http<any>(`/assistants/${assistantId}`);
 }
 
+export async function listAssistants(limit: number = 50, skip: number = 0): Promise<any[]> {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  params.set('skip', String(skip));
+  return http<any[]>(`/assistants/?${params.toString()}`);
+}
+
+export async function createAssistant(name: string): Promise<any> {
+  return http<any>(`/assistants/`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createConversation(assistantId: string, title?: string): Promise<any> {
+  return http<any>(`/conversations/`, {
+    method: 'POST',
+    body: JSON.stringify({ assistant_id: assistantId, title: title || 'New Conversation' }),
+  });
+}

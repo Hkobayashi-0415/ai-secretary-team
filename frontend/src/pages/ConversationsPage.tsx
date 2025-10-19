@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { listAssistants, createAssistant, createConversation } from '../services/api';
 
 type Conversation = {
   id: string;
@@ -13,6 +14,8 @@ export default function ConversationsPage() {
   const [items, setItems] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -35,6 +38,41 @@ export default function ConversationsPage() {
   return (
     <div className="p-4 space-y-3">
       <h2 className="text-xl font-semibold">Conversations</h2>
+      <div>
+        <button
+          onClick={async () => {
+            try {
+              setCreating(true);
+              // ensure we have at least one assistant
+              let assistants = [] as any[];
+              try { assistants = await listAssistants(1, 0); } catch {}
+              let assistantId: string | null = assistants?.[0]?.id || null;
+              if (!assistantId) {
+                try {
+                  const asst = await createAssistant('AutoBot');
+                  assistantId = asst?.id ?? null;
+                } catch {}
+              }
+              if (!assistantId) throw new Error('No assistant available');
+              // create conversation then navigate
+              const conv = await createConversation(assistantId, 'New Conversation');
+              if (conv?.id) {
+                navigate(`/chat/${conv.id}`);
+                return;
+              }
+              throw new Error('Failed to create conversation');
+            } catch (e: any) {
+              setError(e?.message || 'failed to create');
+            } finally {
+              setCreating(false);
+            }
+          }}
+          className="px-3 py-1 rounded bg-black text-white"
+          disabled={creating}
+        >
+          {creating ? 'Creating...' : 'New Conversation'}
+        </button>
+      </div>
       {items.length === 0 && <div className="text-gray-500">No conversations yet.</div>}
       <ul className="space-y-2">
         {items.map((c) => (
@@ -52,4 +90,3 @@ export default function ConversationsPage() {
     </div>
   );
 }
-
