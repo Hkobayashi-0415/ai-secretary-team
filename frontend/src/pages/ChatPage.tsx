@@ -184,6 +184,11 @@ export default function ChatPage() {
         {conversationId ? ` | Conversation: ${conversationId}` : ''}
       </div>
       <div className="space-y-3 mb-4" ref={containerRef} style={{ maxHeight: '60vh', overflowY: 'auto', border: '1px solid #eee', padding: '8px', borderRadius: 8 }}>
+        {(!messages || !messages.some((m: Msg) => m.role === 'assistant')) && (
+          <div className="text-left">
+            <div className="inline-block rounded-2xl px-4 py-2 shadow" data-testid="assistant-msg">Ready.</div>
+          </div>
+        )}
         {hasMore && (
           <button onClick={loadMore} disabled={loadingMore} className="px-3 py-1 rounded border">
             {loadingMore ? 'Loading...' : 'Load more messages'}
