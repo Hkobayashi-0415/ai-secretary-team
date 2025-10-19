@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { listAssistants, createAssistant, createConversation, listConversations } from '../services/api';
 
 type Conversation = {
@@ -16,7 +16,6 @@ export default function ConversationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [preparedConvId, setPreparedConvId] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
