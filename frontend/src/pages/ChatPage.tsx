@@ -117,9 +117,19 @@ export default function ChatPage() {
 
   const send = () => {
     if (!input) return;
-    push({ id: crypto.randomUUID(), role: 'user', content: input });
-    wsRef.current?.send(JSON.stringify({ type: 'user_message', text: input }));
+    const text = input;
+    push({ id: crypto.randomUUID(), role: 'user', content: text });
     setInput('');
+    const payload = JSON.stringify({ type: 'user_message', text });
+    const trySend = (attempts: number) => {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(payload);
+      } else if (attempts > 0) {
+        setTimeout(() => trySend(attempts - 1), 100);
+      }
+    };
+    trySend(30); // up to ~3s
   };
 
   return (
