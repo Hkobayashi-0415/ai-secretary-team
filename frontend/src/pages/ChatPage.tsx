@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useChatStore } from '../store/chat';
 import type { Msg } from '../store/chat';
-import { listMessagesPaged, getConversation, getAssistant } from '../services/api';
+import { listMessagesPaged, getConversation, getAssistant, listAssistants, createAssistant, createConversation } from '../services/api';
 import type { Message as ApiMessage } from '../services/api';
 
 export default function ChatPage() {
@@ -17,11 +17,33 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!conversationId) return;
-    // load assistant name and history first
     (async () => {
+      let cid = conversationId as string;
       try {
+        // Handle special "new" route: create conversation, then replace URL
+        if (cid === 'new') {
+          let assistants = [] as any[];
+          try { assistants = await listAssistants(1, 0); } catch {}
+          let assistantId: string | null = assistants?.[0]?.id || null;
+          if (!assistantId) {
+            try {
+              const asst = await createAssistant('AutoBot');
+              assistantId = asst?.id ?? null;
+            } catch {}
+          }
+          if (!assistantId) return;
+          const conv = await createConversation(assistantId, 'New Conversation');
+          if (conv?.id) {
+            cid = conv.id as string;
+            window.history.replaceState(null, '', `/chat/${cid}`);
+          } else {
+            return;
+          }
+        }
+
+        // load assistant name and initial history
         try {
-          const conv = await getConversation(conversationId as string);
+          const conv = await getConversation(cid);
           const asstId = (conv as any)?.assistant_id as string | undefined;
           if (asstId) {
             try {
@@ -30,22 +52,21 @@ export default function ChatPage() {
             } catch {}
           }
         } catch {}
-        const page = await listMessagesPaged(conversationId as string, undefined, 20);
+        const page = await listMessagesPaged(cid, undefined, 20);
         const mapped: Msg[] = page.messages.map((m: ApiMessage) => ({ id: m.id, role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
         setMessages(mapped);
         setHasMore(page.has_more);
       } catch {
         // ignore
       }
-    })();
-    const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host.replace(/:3000$/, ':8000');
-    // Backend final path: /api/v1/ws/chat
-    const ws = new WebSocket(`${wsUrl}/api/v1/ws/chat?conversation_id=${conversationId}`);
-    ws.onmessage = (ev) => {
-      const data = JSON.parse(ev.data);
-      if (data.type === 'assistant_start') {
-        push({ id: crypto.randomUUID(), role: 'assistant', content: '' });
-      } else if (data.type === 'token') {
+      // open WS for the (possibly newly created) conversation id
+      const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host.replace(/:3000$/, ':8000');
+      const ws = new WebSocket(`${wsUrl}/api/v1/ws/chat?conversation_id=${cid}`);
+      ws.onmessage = (ev) => {
+        const data = JSON.parse(ev.data);
+        if (data.type === 'assistant_start') {
+          push({ id: crypto.randomUUID(), role: 'assistant', content: '' });
+        } else if (data.type === 'token') {
         // 最新のstateに対して最後のassistantメッセージへ追記
         useChatStore.setState((state: any) => {
           const msgs: Msg[] = [...state.messages];
@@ -62,8 +83,9 @@ export default function ChatPage() {
         // noop
       }
     };
-    wsRef.current = ws;
-    return () => ws.close();
+      wsRef.current = ws;
+    })();
+    return () => wsRef.current?.close();
   }, [conversationId]);
 
   const loadMore = async () => {

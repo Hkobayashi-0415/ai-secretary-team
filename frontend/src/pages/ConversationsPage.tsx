@@ -54,6 +54,14 @@ export default function ConversationsPage() {
     <div className="p-4 space-y-3">
       <h2 className="text-xl font-semibold">Conversations</h2>
       <div>
+        <a
+          role="button"
+          data-testid="new-conversation-cta"
+          href="/chat/new"
+          className="px-3 py-1 rounded bg-black text-white inline-block mr-2"
+        >
+          New Conversation
+        </a>
         <button
           onClick={async () => {
             try {
