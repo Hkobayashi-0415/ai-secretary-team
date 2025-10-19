@@ -1,20 +1,63 @@
 import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useChatStore } from '../store/chat';
+import type { Msg } from '../store/chat';
+import { listMessagesPaged, getConversation, getAssistant } from '../services/api';
+import type { Message as ApiMessage } from '../services/api';
 
-export default function ChatPage({ conversationId }: { conversationId: string }) {
-  const { messages, push } = useChatStore();
+export default function ChatPage() {
+  const { conversationId } = useParams();
+  const { messages, push, setMessages } = useChatStore() as any;
   const [input, setInput] = useState('');
   const wsRef = useRef<WebSocket | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [assistantName, setAssistantName] = useState<string>('');
 
   useEffect(() => {
+    if (!conversationId) return;
+    // load assistant name and history first
+    (async () => {
+      try {
+        try {
+          const conv = await getConversation(conversationId as string);
+          const asstId = (conv as any)?.assistant_id as string | undefined;
+          if (asstId) {
+            try {
+              const asst = await getAssistant(asstId);
+              setAssistantName((asst as any)?.name || '');
+            } catch {}
+          }
+        } catch {}
+        const page = await listMessagesPaged(conversationId as string, undefined, 20);
+        const mapped: Msg[] = page.messages.map((m: ApiMessage) => ({ id: m.id, role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
+        setMessages(mapped);
+        setHasMore(page.has_more);
+      } catch {
+        // ignore
+      }
+    })();
     const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host.replace(/:3000$/, ':8000');
-    const ws = new WebSocket(`${wsUrl}/ws/chat?conversation_id=${conversationId}`);
+    // Backend final path: /api/v1/ws/chat
+    const ws = new WebSocket(`${wsUrl}/api/v1/ws/chat?conversation_id=${conversationId}`);
     ws.onmessage = (ev) => {
       const data = JSON.parse(ev.data);
       if (data.type === 'assistant_start') {
         push({ id: crypto.randomUUID(), role: 'assistant', content: '' });
       } else if (data.type === 'token') {
-        messages[messages.length - 1].content += data.text;
+        // 最新のstateに対して最後のassistantメッセージへ追記
+        useChatStore.setState((state: any) => {
+          const msgs: Msg[] = [...state.messages];
+          const last = msgs[msgs.length - 1];
+          if (last && last.role === 'assistant') {
+            last.content += data.text as string;
+          } else {
+            // 念のため、開始イベント前にトークンが来た場合は新規assistantを作成
+            msgs.push({ id: crypto.randomUUID(), role: 'assistant', content: String(data.text ?? '') });
+          }
+          return { messages: msgs };
+        });
       } else if (data.type === 'assistant_end') {
         // noop
       }
@@ -22,6 +65,33 @@ export default function ChatPage({ conversationId }: { conversationId: string })
     wsRef.current = ws;
     return () => ws.close();
   }, [conversationId]);
+
+  const loadMore = async () => {
+    if (!conversationId || loadingMore || messages.length === 0) return;
+    setLoadingMore(true);
+    const firstId = messages[0].id;
+    const container = containerRef.current;
+    const prevHeight = container ? container.scrollHeight : 0;
+    try {
+      const page = await listMessagesPaged(conversationId, firstId, 20);
+      if (page.messages && page.messages.length) {
+        const mapped: Msg[] = page.messages.map((m: ApiMessage) => ({ id: m.id, role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
+        setMessages([...mapped, ...messages]);
+        setHasMore(page.has_more);
+        // adjust scroll to keep position
+        setTimeout(() => {
+          if (container) {
+            const newHeight = container.scrollHeight;
+            container.scrollTop = newHeight - prevHeight;
+          }
+        }, 0);
+      } else {
+        setHasMore(false);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const send = () => {
     if (!input) return;
@@ -32,16 +102,26 @@ export default function ChatPage({ conversationId }: { conversationId: string })
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
-      <div className="space-y-3 mb-4">
-        {messages.map((m) => (
+      <div className="text-lg font-semibold mb-2">
+        {assistantName ? `Assistant: ${assistantName}` : 'Assistant'}
+        {conversationId ? ` | Conversation: ${conversationId}` : ''}
+      </div>
+      <div className="space-y-3 mb-4" ref={containerRef} style={{ maxHeight: '60vh', overflowY: 'auto', border: '1px solid #eee', padding: '8px', borderRadius: 8 }}>
+        {hasMore && (
+          <button onClick={loadMore} disabled={loadingMore} className="px-3 py-1 rounded border">
+            {loadingMore ? 'Loading...' : 'Load more messages'}
+          </button>
+        )}
+        {messages.map((m: Msg) => (
           <div key={m.id} className={m.role === 'user' ? 'text-right' : 'text-left'}>
             <div className="inline-block rounded-2xl px-4 py-2 shadow">{m.content}</div>
           </div>
         ))}
+        {messages.length === 0 && <div className="text-gray-500">まだメッセージがありません</div>}
       </div>
       <div className="flex gap-2">
         <input className="border rounded px-3 py-2 flex-1" value={input} onChange={(e)=>setInput(e.target.value)} placeholder="Type message..." />
-        <button className="px-4 py-2 rounded bg-black text-white" onClick={send}>Send</button>
+        <button className="px-4 py-2 rounded bg-black text-white" onClick={send} disabled={!input.trim()}>Send</button>
       </div>
     </div>
   );

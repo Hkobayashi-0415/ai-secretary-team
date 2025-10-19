@@ -3,7 +3,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# Prefer reproducible ci, but fall back to install when lock got updated by overrides
+RUN npm ci --ignore-scripts || npm install --ignore-scripts
 
 # Allow overriding API origin at build time (default: relative '/api')
 ARG VITE_API_URL=/api
