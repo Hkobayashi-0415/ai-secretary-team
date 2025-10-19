@@ -16,6 +16,8 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
+echo "[entrypoint] initializing alembic version table (base)"
+alembic stamp base || true
 echo "[entrypoint] running alembic upgrade head"
 alembic upgrade head
 
