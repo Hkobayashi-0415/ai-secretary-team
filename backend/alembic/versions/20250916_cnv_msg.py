@@ -20,7 +20,6 @@ depends_on = None
 
 def _table_exists(table: str) -> bool:
     conn = op.get_bind()
-    # public スキーマ前提。必要なら settings から読む
     return conn.execute(text("SELECT to_regclass(:t)"), {"t": f"public.{table}"}).scalar() is not None
 
 
@@ -44,15 +43,15 @@ def upgrade() -> None:
                 server_default=sa.text("gen_random_uuid()"),
                 nullable=False,
             ),
-            sa.Column("user_id", psql.UUID(as_uuid=True), sa.ForeignKey("assistants.id", ondelete="CASCADE"), nullable=False),
-            # AIAssistant の実テーブル名に合わせる（多くは ai_assistants）
-            sa.Column("assistant_id", psql.UUID(as_uuid=True), sa.ForeignKey("ai_assistants.id", ondelete="CASCADE"), nullable=False),
+            # Correct FKs: user_id -> users.id, assistant_id -> assistants.id
+            sa.Column("user_id", psql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("assistant_id", psql.UUID(as_uuid=True), sa.ForeignKey("assistants.id", ondelete="CASCADE"), nullable=False),
             sa.Column("title", sa.String(200)),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
             sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         )
 
-    # --- message_role enum（無ければ作る） ---
+    # --- message_role enum ---
     if not _enum_exists("message_role"):
         op.execute(
             sa.text(
@@ -91,8 +90,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # 依存関係の都合で messages → conversations の順で落とす
     op.execute("DROP TABLE IF EXISTS messages CASCADE")
     op.execute("DROP TABLE IF EXISTS conversations CASCADE")
-    # Enum は他でも使う可能性があるので残す（必要なら DROP TYPE IF EXISTS message_role）
 
