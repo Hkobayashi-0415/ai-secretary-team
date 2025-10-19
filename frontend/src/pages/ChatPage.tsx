@@ -160,7 +160,12 @@ export default function ChatPage() {
         )}
         {messages.map((m: Msg) => (
           <div key={m.id} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-            <div className="inline-block rounded-2xl px-4 py-2 shadow">{m.content}</div>
+            <div
+              className="inline-block rounded-2xl px-4 py-2 shadow"
+              {...(m.role === 'assistant' ? { 'data-testid': 'assistant-msg' } : {})}
+            >
+              {m.content}
+            </div>
           </div>
         ))}
         {messages.length === 0 && <div className="text-gray-500">まだメッセージがありません</div>}
