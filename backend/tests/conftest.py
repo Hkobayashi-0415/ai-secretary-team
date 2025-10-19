@@ -37,10 +37,21 @@ def event_loop(request) -> Generator:
 async def db() -> AsyncGenerator[AsyncSession, None]:
     # 拡張を有効化（権限がない環境でも無視して続行）→スキーマ作成
     async with engine.begin() as conn:
-        try:
-            await conn.exec_driver_sql('CREATE EXTENSION IF NOT EXISTS "vector";')
-        except Exception:
-            pass
+        # 拡張がインストール可能な場合のみ安全に作成する（未提供の環境での失敗を避ける）
+        await conn.exec_driver_sql(
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'vector') THEN
+                    CREATE EXTENSION IF NOT EXISTS vector;
+                END IF;
+                IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pgcrypto') THEN
+                    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+                END IF;
+            END
+            $$;
+            """
+        )
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestingSessionLocal() as session:

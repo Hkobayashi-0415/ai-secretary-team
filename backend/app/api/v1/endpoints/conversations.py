@@ -12,8 +12,10 @@ from app.models.phase2_models import Conversation, Message
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationOut,
+    ConversationUpdate,
     MessageCreate,
     MessageOut,
+    MessagePage,
 )
 
 router = APIRouter()
@@ -109,3 +111,134 @@ async def list_messages(
     )
     res = await db.execute(q)
     return list(res.scalars().all())
+
+
+@router.get(
+    "/{conversation_id}/messages/page",
+    response_model=MessagePage,
+    status_code=status.HTTP_200_OK,
+)
+async def list_messages_paged(
+    conversation_id: uuid.UUID,
+    before_id: uuid.UUID | None = None,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_async_db),
+):
+    # conversation existence check
+    res = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
+    if not res.scalars().first():
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    rows: list[Message]
+    if before_id is not None:
+        # older than the anchor, return ascending
+        anchor = await db.get(Message, before_id)
+        if anchor is None or anchor.conversation_id != conversation_id:
+            return MessagePage(messages=[], has_more=False)
+        q = (
+            select(Message)
+            .where((Message.conversation_id == conversation_id) & (Message.created_at < anchor.created_at))
+            .order_by(Message.created_at.asc())
+            .limit(limit)
+        )
+        rows = (await db.execute(q)).scalars().all()
+    else:
+        # latest page: take last `limit` by desc, then return asc
+        q_desc = (
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.desc())
+            .limit(limit)
+        )
+        latest_desc = (await db.execute(q_desc)).scalars().all()
+        rows = list(reversed(latest_desc))
+
+    has_more = False
+    if rows:
+        first_ts = rows[0].created_at
+        older_exists_q = (
+            select(Message.id)
+            .where((Message.conversation_id == conversation_id) & (Message.created_at < first_ts))
+            .limit(1)
+        )
+        has_more = (await db.execute(older_exists_q)).first() is not None
+
+    return MessagePage(messages=rows, has_more=has_more)
+
+
+# ---- Additional CRUD for Conversation ----
+
+@router.get(
+    "/{conversation_id}",
+    response_model=ConversationOut,
+    status_code=status.HTTP_200_OK,
+)
+async def get_conversation(
+    conversation_id: uuid.UUID,
+    db: AsyncSession = Depends(get_async_db),
+):
+    res = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
+    conv = res.scalars().first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conv
+
+
+@router.get(
+    "/",
+    response_model=List[ConversationOut],
+    status_code=status.HTTP_200_OK,
+)
+async def list_conversations(
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_async_db),
+):
+    q = (
+        select(Conversation)
+        .order_by(Conversation.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    res = await db.execute(q)
+    return list(res.scalars().all())
+
+
+@router.delete(
+    "/{conversation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_conversation(
+    conversation_id: uuid.UUID,
+    db: AsyncSession = Depends(get_async_db),
+):
+    res = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
+    conv = res.scalars().first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    await db.delete(conv)
+    await db.commit()
+    return None
+
+
+@router.patch(
+    "/{conversation_id}",
+    response_model=ConversationOut,
+    status_code=status.HTTP_200_OK,
+)
+async def update_conversation(
+    conversation_id: uuid.UUID,
+    payload: ConversationUpdate,
+    db: AsyncSession = Depends(get_async_db),
+):
+    res = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
+    conv = res.scalars().first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if payload.title is not None:
+        conv.title = payload.title or None
+
+    await db.commit()
+    await db.refresh(conv)
+    return conv

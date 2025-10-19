@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_db
-from app.services.routing.orchestrator import RoutingOrchestrator
+import app.services.routing.orchestrator as orchestrator_mod
 from app.services.routing.models.routing_models import RoutingDecision
 from app.schemas.routing import RoutingRequest
 
@@ -18,8 +18,8 @@ async def get_routing_decision(
     最適なLLMとエージェントを決定するルーティング処理（テスト用）
     """
     try:
-        orchestrator = RoutingOrchestrator(db=db)
-        decision = await orchestrator.route(
+        orch = orchestrator_mod.RoutingOrchestrator(db=db)
+        decision = await orch.route(
             user_prompt=request.prompt, 
             assistant_id=str(request.assistant_id)
         )
