@@ -10,6 +10,7 @@ const Header: React.FC = () => {
       </div>
       <nav className="navigation" style={{ display: 'flex', gap: '1rem' }}>
         <NavLink to="/" end>Dashboard</NavLink>
+        <NavLink to="/conversations">Conversations</NavLink>
         <NavLink to="/assistants">AI Assistants</NavLink>
         {/* <NavLink to="/projects">Projects</NavLink> */}
         {/* <NavLink to="/workflows">Workflows</NavLink> */}
