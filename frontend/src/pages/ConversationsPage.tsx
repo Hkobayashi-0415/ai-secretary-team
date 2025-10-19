@@ -63,6 +63,11 @@ export default function ConversationsPage() {
                 window.location.assign(`/chat/${preparedConvId}`);
                 return;
               }
+              // If list already has conversations, open the latest
+              if (items && items.length > 0) {
+                window.location.assign(`/chat/${items[0].id}`);
+                return;
+              }
               // ensure we have at least one assistant
               let assistants = [] as any[];
               try { assistants = await listAssistants(1, 0); } catch {}
