@@ -190,7 +190,7 @@ export default function ChatPage() {
               className="inline-block rounded-2xl px-4 py-2 shadow"
               {...(m.role === 'assistant' ? { 'data-testid': 'assistant-msg' } : {})}
             >
-              {m.content}
+              {m.content && m.content.length > 0 ? m.content : '\u00A0'}
             </div>
           </div>
         ))}
