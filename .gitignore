@@ -159,3 +159,4 @@ project_tree*.txt
 # Ad-hoc debug artifacts (avoid accidental commits)
 _chatpage_full.txt
 temp_api_ts_view.txt
+e2e-latest.txt
