@@ -54,3 +54,12 @@ class MessageOut(ORMBase):
     content_type: Optional[str] = None
     parent_message_id: Optional[UUID] = None
     created_at: Optional[datetime] = None
+
+
+class MessagePage(ORMBase):
+    messages: list[MessageOut]
+    has_more: bool
+
+
+class ConversationUpdate(ORMBase):
+    title: Optional[str] = None
