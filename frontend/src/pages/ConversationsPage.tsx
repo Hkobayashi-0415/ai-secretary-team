@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listAssistants, createAssistant, createConversation, listConversations } from '../services/api';
+// No API needed for CTA-only page; list below is fetched via fetch()
 
 type Conversation = {
   id: string;
@@ -14,7 +14,7 @@ export default function ConversationsPage() {
   const [items, setItems] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [creating] = useState(false);
+  // placeholder to keep minimal state; no longer used for CTA
 
   useEffect(() => {
     (async () => {
