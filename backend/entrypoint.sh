@@ -17,9 +17,11 @@ if [ "$ready" -ne 1 ]; then
 fi
 
 echo "[entrypoint] initializing alembic version table (base)"
-alembic stamp base || true
+cd /app/backend
+alembic -c alembic.ini stamp base || true
 echo "[entrypoint] running alembic upgrade head"
-alembic upgrade head
+alembic -c alembic.ini upgrade head
 
 echo "[entrypoint] starting uvicorn"
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+cd /app
+exec uvicorn backend.app.main:app --host 0.0.0.0 --port 8000

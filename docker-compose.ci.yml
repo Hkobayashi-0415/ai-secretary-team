@@ -50,10 +50,11 @@ services:
       sh -c "
         echo 'Waiting for database...' &&
         sleep 5 &&
+        cd /app/backend &&
+        alembic -c alembic.ini stamp base &&
+        alembic -c alembic.ini upgrade head &&
         cd /app &&
-        alembic stamp base &&
-        alembic upgrade head &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8000
+        uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
       "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

@@ -51,8 +51,7 @@ jobs:
       - name: Migrate DB (upgrade)
         run: |
           set -e
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic current
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend sh -lc "cd /app/backend && alembic -c alembic.ini upgrade head && alembic -c alembic.ini current"
 
       # アプリ起動（内部ネットワークのみ）
       - name: Start app services
@@ -60,7 +59,7 @@ jobs:
 
       # Extra safety: finalize migrations inside the running backend container
       - name: Ensure DB schema on running backend
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T backend alembic upgrade head
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T backend sh -lc "cd /app/backend && alembic -c alembic.ini upgrade head && alembic -c alembic.ini current"
 
       # Playwright をコンテナで実行（E2E_BASE_URL=http://frontend）
       - name: Run Playwright tests in container

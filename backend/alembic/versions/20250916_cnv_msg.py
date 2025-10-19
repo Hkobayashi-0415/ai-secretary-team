@@ -95,3 +95,4 @@ def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS messages CASCADE")
     op.execute("DROP TABLE IF EXISTS conversations CASCADE")
     # Enum は他でも使う可能性があるので残す（必要なら DROP TYPE IF EXISTS message_role）
+
