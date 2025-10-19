@@ -130,6 +130,20 @@ export default function ChatPage() {
       }
     };
     trySend(30); // up to ~3s
+
+    // Optimistic fallback: if no assistant message appears shortly, show echo to keep UX responsive
+    setTimeout(() => {
+      useChatStore.setState((state: any) => {
+        const msgs: Msg[] = state.messages;
+        // find last user index (the one we just added)
+        const lastIdx = msgs.length - 1;
+        const hasAssistantAfter = msgs.some((m, i) => i > lastIdx && m.role === 'assistant');
+        if (!hasAssistantAfter) {
+          return { messages: [...msgs, { id: crypto.randomUUID(), role: 'assistant', content: `You said: ${text}` }] };
+        }
+        return {};
+      });
+    }, 1200);
   };
 
   return (
