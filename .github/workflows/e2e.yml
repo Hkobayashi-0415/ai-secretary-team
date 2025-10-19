@@ -48,22 +48,8 @@ jobs:
           $DC ps
 
       # マイグレーション（スキーマ既存なら stamp で整合）
-      - name: Migrate DB (upgrade)
-        run: |
-          set -e
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend sh -lc "cd /app && alembic -c alembic.ini stamp base && alembic -c alembic.ini upgrade head && alembic -c alembic.ini current && alembic -c alembic.ini history --verbose | tail -n 40"
-
-      - name: Verify required tables exist (fail-fast)
-        run: |
-          set -e
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend sh -lc '
-            export PGPASSWORD=${POSTGRES_PASSWORD:-ai_secretary_password};
-            check(){
-              v=$(psql -h postgres -U ai_secretary_user -d ai_secretary -t -A -c "select coalesce(to_regclass(''public."$1"'')::text, ''NULL'')");
-              if [ "$v" = "NULL" ]; then echo "missing table: $1"; exit 1; else echo "ok: $1"; fi;
-            }
-            check users; check assistants; check conversations; check messages;
-          '
+      # DB migration is performed inside backend command before app starts.
+      # We avoid running it concurrently from the workflow to prevent races.
 
       # アプリ起動（内部ネットワークのみ）
       - name: Start app services
