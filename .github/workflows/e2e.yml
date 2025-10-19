@@ -48,10 +48,11 @@ jobs:
           $DC ps
 
       # マイグレーション（スキーマ既存なら stamp で整合）
-      - name: Migrate DB (upgrade or stamp)
+      - name: Migrate DB (upgrade)
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head || \
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic stamp head
+          set -e
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic current
 
       # アプリ起動（内部ネットワークのみ）
       - name: Start app services
