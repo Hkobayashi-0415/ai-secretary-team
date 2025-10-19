@@ -55,19 +55,15 @@ export default function ConversationsPage() {
     <div className="p-4 space-y-3">
       <h2 className="text-xl font-semibold">Conversations</h2>
       <div>
-        {preparedConvId ? (
-          <a
-            role="button"
-            href={`/chat/${preparedConvId}`}
-            className="px-3 py-1 rounded bg-black text-white"
-          >
-            New Conversation
-          </a>
-        ) : (
-          <button
+        <button
           onClick={async () => {
             try {
               setCreating(true);
+              // If prepared conversation exists, navigate immediately
+              if (preparedConvId) {
+                window.location.assign(`/chat/${preparedConvId}`);
+                return;
+              }
               // ensure we have at least one assistant
               let assistants = [] as any[];
               try { assistants = await listAssistants(1, 0); } catch {}
@@ -82,13 +78,13 @@ export default function ConversationsPage() {
               // create conversation then navigate
               const conv = await createConversation(assistantId, 'New Conversation');
               if (conv?.id) {
-                navigate(`/chat/${conv.id}`);
+                window.location.assign(`/chat/${conv.id}`);
                 return;
               }
               // fallback: navigate to the most recent conversation if exists
               const convs = await listConversations(1, 0);
               if (convs?.[0]?.id) {
-                navigate(`/chat/${convs[0].id}`);
+                window.location.assign(`/chat/${convs[0].id}`);
                 return;
               }
               throw new Error('Failed to create conversation');
@@ -103,7 +99,6 @@ export default function ConversationsPage() {
         >
           {creating ? 'Creating...' : 'New Conversation'}
         </button>
-        )}
       </div>
       {error && <div className="text-red-600">Error: {error}</div>}
       {items.length === 0 && !error && <div className="text-gray-500">No conversations yet.</div>}
