@@ -129,16 +129,14 @@ export default function ChatPage() {
   const send = () => {
     if (!input) return;
     const text = input;
-    push({ id: crypto.randomUUID(), role: 'user', content: text });
-    // Ensure an assistant bubble exists immediately for UX and E2E stability
-    useChatStore.setState((state: any) => {
-      const msgs: Msg[] = state.messages;
-      const last = msgs[msgs.length - 1];
-      if (!last || last.role !== 'assistant') {
-        return { messages: [...msgs, { id: crypto.randomUUID(), role: 'assistant', content: '' }] };
-      }
-      return {};
-    });
+    // Atomically append user + assistant placeholder to avoid batching races
+    useChatStore.setState((state: any) => ({
+      messages: [
+        ...state.messages,
+        { id: crypto.randomUUID(), role: 'user', content: text } as Msg,
+        { id: crypto.randomUUID(), role: 'assistant', content: '' } as Msg,
+      ],
+    }));
     setInput('');
     const payload = JSON.stringify({ type: 'user_message', text });
     const trySend = (attempts: number) => {
