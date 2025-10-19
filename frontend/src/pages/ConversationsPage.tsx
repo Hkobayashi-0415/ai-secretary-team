@@ -15,6 +15,7 @@ export default function ConversationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [preparedConvId, setPreparedConvId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +25,22 @@ export default function ConversationsPage() {
         if (!res.ok) throw new Error(String(res.status));
         const data = await res.json();
         setItems(data || []);
+        // Pre-create a conversation to make the CTA immediate when list is empty
+        if ((!data || data.length === 0)) {
+          try {
+            let assistants = [] as any[];
+            try { assistants = await listAssistants(1, 0); } catch {}
+            let assistantId: string | null = assistants?.[0]?.id || null;
+            if (!assistantId) {
+              const asst = await createAssistant('AutoBot');
+              assistantId = asst?.id ?? null;
+            }
+            if (assistantId) {
+              const conv = await createConversation(assistantId, 'New Conversation');
+              if (conv?.id) setPreparedConvId(conv.id as string);
+            }
+          } catch {}
+        }
       } catch (e: any) {
         setError(e?.message || 'failed');
       } finally {
@@ -38,7 +55,16 @@ export default function ConversationsPage() {
     <div className="p-4 space-y-3">
       <h2 className="text-xl font-semibold">Conversations</h2>
       <div>
-        <button
+        {preparedConvId ? (
+          <a
+            role="button"
+            href={`/chat/${preparedConvId}`}
+            className="px-3 py-1 rounded bg-black text-white"
+          >
+            New Conversation
+          </a>
+        ) : (
+          <button
           onClick={async () => {
             try {
               setCreating(true);
@@ -77,6 +103,7 @@ export default function ConversationsPage() {
         >
           {creating ? 'Creating...' : 'New Conversation'}
         </button>
+        )}
       </div>
       {error && <div className="text-red-600">Error: {error}</div>}
       {items.length === 0 && !error && <div className="text-gray-500">No conversations yet.</div>}
