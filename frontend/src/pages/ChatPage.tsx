@@ -58,10 +58,15 @@ export default function ChatPage() {
         try {
           const existing = (useChatStore.getState() as any)?.messages ?? [];
           if (!existing.length) {
-            setMessages(mapped);
+            if (mapped.length) {
+              setMessages(mapped);
+            } else {
+              // Ensure at least one assistant bubble exists for visibility/stability
+              setMessages([{ id: crypto.randomUUID(), role: 'assistant', content: '' } as Msg]);
+            }
           }
         } catch {
-          setMessages(mapped);
+          setMessages(mapped.length ? mapped : [{ id: crypto.randomUUID(), role: 'assistant', content: '' } as Msg]);
         }
         setHasMore(page.has_more);
       } catch {
