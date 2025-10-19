@@ -88,6 +88,17 @@ export default function ChatPage() {
     return () => wsRef.current?.close();
   }, [conversationId]);
 
+  // Always keep the latest message in view to satisfy visibility checks and UX
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    // next tick after render
+    const t = setTimeout(() => {
+      el.scrollTop = el.scrollHeight;
+    }, 0);
+    return () => clearTimeout(t);
+  }, [messages]);
+
   const loadMore = async () => {
     if (!conversationId || loadingMore || messages.length === 0) return;
     setLoadingMore(true);
