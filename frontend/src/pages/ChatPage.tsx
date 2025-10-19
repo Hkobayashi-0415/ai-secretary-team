@@ -62,11 +62,11 @@ export default function ChatPage() {
               setMessages(mapped);
             } else {
               // Ensure at least one assistant bubble exists for visibility/stability
-              setMessages([{ id: crypto.randomUUID(), role: 'assistant', content: '' } as Msg]);
+              setMessages([{ id: crypto.randomUUID(), role: 'assistant', content: 'Ready.' } as Msg]);
             }
           }
         } catch {
-          setMessages(mapped.length ? mapped : [{ id: crypto.randomUUID(), role: 'assistant', content: '' } as Msg]);
+          setMessages(mapped.length ? mapped : [{ id: crypto.randomUUID(), role: 'assistant', content: 'Ready.' } as Msg]);
         }
         setHasMore(page.has_more);
       } catch {
