@@ -8,15 +8,18 @@ from app.services.llm.mock_llm import stream_mock_reply
 
 router = APIRouter()
 
-@router.websocket("/ws/chat")
+# NOTE: api.py mounts this router with prefix="/ws".
+# So the final path becomes: /api/v1/ws/chat
+@router.websocket("/chat")
 async def chat_ws(websocket: WebSocket, conversation_id: uuid.UUID = Query(...), db: AsyncSession = Depends(get_async_db)):
-    await websocket.accept()
-    # 会話存在チェック
+    # Validate conversation BEFORE accept so invalid IDs fail connect
     result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
     conv = result.scalars().first()
     if not conv:
+        # Closing prior to accept will cause client connect to raise
         await websocket.close(code=4404)
         return
+    await websocket.accept()
     try:
         while True:
             payload = await websocket.receive_json()
