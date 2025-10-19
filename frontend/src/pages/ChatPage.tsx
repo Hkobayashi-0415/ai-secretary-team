@@ -54,7 +54,15 @@ export default function ChatPage() {
         } catch {}
         const page = await listMessagesPaged(cid, undefined, 20);
         const mapped: Msg[] = page.messages.map((m: ApiMessage) => ({ id: m.id, role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
-        setMessages(mapped);
+        // Do not overwrite messages if user has already started chatting (e.g. placeholder inserted)
+        try {
+          const existing = (useChatStore.getState() as any)?.messages ?? [];
+          if (!existing.length) {
+            setMessages(mapped);
+          }
+        } catch {
+          setMessages(mapped);
+        }
         setHasMore(page.has_more);
       } catch {
         // ignore
