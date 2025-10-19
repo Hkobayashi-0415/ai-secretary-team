@@ -5,7 +5,8 @@ WORKDIR /workspace/frontend
 
 # 依存は build 時に固定（実行時に npm/apt は走らない）
 COPY frontend/package*.json ./
-RUN npm ci
+# Allow fallback to npm install if lockfile is out of sync in PRs
+RUN npm ci --ignore-scripts || npm install --ignore-scripts
 
 # テスト一式と Playwright 設定をフロントから拝借
 COPY frontend/tests ./tests
