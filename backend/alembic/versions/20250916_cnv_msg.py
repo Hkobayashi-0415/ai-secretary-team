@@ -46,19 +46,63 @@ def upgrade() -> None:
             # Correct FKs: user_id -> users.id, assistant_id -> assistants.id
             sa.Column("user_id", psql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
             sa.Column("assistant_id", psql.UUID(as_uuid=True), sa.ForeignKey("assistants.id", ondelete="CASCADE"), nullable=False),
-            sa.Column("title", sa.String(200)),
+            sa.Column("title", sa.String(255)),
+            sa.Column("conversation_type", sa.String(50), server_default=sa.text("'chat'"), nullable=False),
+            sa.Column("status", sa.String(20), server_default=sa.text("'active'"), nullable=False),
+            sa.Column("voice_enabled", sa.Boolean, server_default=sa.text("true"), nullable=False),
+            sa.Column("voice_id", psql.UUID(as_uuid=True)),
+            sa.Column("metadata", psql.JSONB, server_default=sa.text("'{}'::jsonb")),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
             sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         )
 
-    # --- message_role enum ---
-    # Create enum atomically; avoids race across concurrent runs
-    op.execute("CREATE TYPE IF NOT EXISTS message_role AS ENUM ('user','assistant','system')")
+    # Ensure conversations/messages optional columns match ORM expectations if tables pre-exist
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='conversations') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversations' AND column_name='conversation_type') THEN
+                    ALTER TABLE conversations ADD COLUMN conversation_type varchar(50) NOT NULL DEFAULT 'chat';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversations' AND column_name='status') THEN
+                    ALTER TABLE conversations ADD COLUMN status varchar(20) NOT NULL DEFAULT 'active';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversations' AND column_name='voice_enabled') THEN
+                    ALTER TABLE conversations ADD COLUMN voice_enabled boolean NOT NULL DEFAULT true;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversations' AND column_name='voice_id') THEN
+                    ALTER TABLE conversations ADD COLUMN voice_id uuid;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversations' AND column_name='metadata') THEN
+                    ALTER TABLE conversations ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;
+                END IF;
+            END IF;
+
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='messages') THEN
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='parent_id') AND
+                   NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='parent_message_id') THEN
+                    ALTER TABLE messages RENAME COLUMN parent_id TO parent_message_id;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='updated_at') THEN
+                    ALTER TABLE messages ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='metadata') THEN
+                    ALTER TABLE messages ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='content_type') THEN
+                    ALTER TABLE messages ADD COLUMN content_type varchar(20) DEFAULT 'text';
+                END IF;
+            END IF;
+        END $$;
+        """
+    )
+
+    # message role: ORM uses String + CHECK; avoid native ENUM to match ORM
 
     # --- messages ---
     if not _table_exists("messages"):
-        # Avoid implicit CREATE TYPE by SQLAlchemy for existing enum
-        role_enum = sa.Enum("user", "assistant", "system", name="message_role", create_type=False)
+        # Use String with CHECK constraint via ORM; keep DB neutral on ENUM
         op.create_table(
             "messages",
             sa.Column(
@@ -74,12 +118,13 @@ def upgrade() -> None:
                 sa.ForeignKey("conversations.id", ondelete="CASCADE"),
                 nullable=False,
             ),
-            sa.Column("role", role_enum, nullable=False),
-            sa.Column("content", sa.Text),
-            sa.Column("content_type", sa.String(50)),
-            sa.Column("parent_id", psql.UUID(as_uuid=True), sa.ForeignKey("messages.id")),
-            sa.Column("metadata", psql.JSONB),
+            sa.Column("role", sa.String(20), nullable=False),
+            sa.Column("content", sa.Text, nullable=False),
+            sa.Column("content_type", sa.String(20), server_default=sa.text("'text'")),
+            sa.Column("parent_message_id", psql.UUID(as_uuid=True), sa.ForeignKey("messages.id")),
+            sa.Column("metadata", psql.JSONB, server_default=sa.text("'{}'::jsonb")),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+            sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         )
         op.create_index("ix_messages_conversation_id", "messages", ["conversation_id"])
 

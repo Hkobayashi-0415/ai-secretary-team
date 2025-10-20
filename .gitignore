@@ -160,3 +160,5 @@ project_tree*.txt
 _chatpage_full.txt
 temp_api_ts_view.txt
 e2e-latest.txt
+e2e-run*.txt
+temp_head.txt

@@ -105,6 +105,9 @@ def upgrade() -> None:
             has_link_skill_def boolean := false; -- assistant_skills.skill_definition_id
             has_link_skill_id boolean := false;  -- assistant_skills.skill_id (variant)
             has_link_skill_name boolean := false; -- assistant_skills.skill_name (init.sql variant)
+            has_conv_type boolean := false;  -- conversations.conversation_type
+            has_status boolean := false;     -- conversations.status
+            has_msg_updated boolean := false; -- messages.updated_at
         BEGIN
             SELECT id INTO u_id FROM users ORDER BY created_at ASC LIMIT 1;
             IF u_id IS NULL THEN
@@ -212,19 +215,63 @@ def upgrade() -> None:
             END IF;
 
             -- welcome conversation (with Kanade)
-            INSERT INTO conversations (
-                id, user_id, assistant_id, title, conversation_type, status, created_at, updated_at
-            ) VALUES (
-                c_id, u_id, as_kanade, 'Welcome Conversation', 'chat', 'active', now(), now()
-            ) ON CONFLICT (id) DO NOTHING;
+            -- detect optional columns for conversations
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='conversations' AND column_name='conversation_type' AND table_schema='public'
+            ) INTO has_conv_type;
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='conversations' AND column_name='status' AND table_schema='public'
+            ) INTO has_status;
 
-            -- messages
-            INSERT INTO messages (
-                id, conversation_id, role, content, content_type, created_at, updated_at
-            ) VALUES
-                (m1_id, c_id, 'assistant', 'Hello! I\'m Kanade. How can I help you today?', 'text', now(), now()),
-                (m2_id, c_id, 'user', 'Thanks! Let\'s start.', 'text', now(), now())
-            ON CONFLICT (id) DO NOTHING;
+            IF has_conv_type AND has_status THEN
+                INSERT INTO conversations (
+                    id, user_id, assistant_id, title, conversation_type, status, created_at, updated_at
+                ) VALUES (
+                    c_id, u_id, as_kanade, 'Welcome Conversation', 'chat', 'active', now(), now()
+                ) ON CONFLICT (id) DO NOTHING;
+            ELSIF has_conv_type THEN
+                INSERT INTO conversations (
+                    id, user_id, assistant_id, title, conversation_type, created_at, updated_at
+                ) VALUES (
+                    c_id, u_id, as_kanade, 'Welcome Conversation', 'chat', now(), now()
+                ) ON CONFLICT (id) DO NOTHING;
+            ELSIF has_status THEN
+                INSERT INTO conversations (
+                    id, user_id, assistant_id, title, status, created_at, updated_at
+                ) VALUES (
+                    c_id, u_id, as_kanade, 'Welcome Conversation', 'active', now(), now()
+                ) ON CONFLICT (id) DO NOTHING;
+            ELSE
+                INSERT INTO conversations (
+                    id, user_id, assistant_id, title, created_at, updated_at
+                ) VALUES (
+                    c_id, u_id, as_kanade, 'Welcome Conversation', now(), now()
+                ) ON CONFLICT (id) DO NOTHING;
+            END IF;
+
+            -- messages (adapt to optional updated_at)
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='messages' AND column_name='updated_at' AND table_schema='public'
+            ) INTO has_msg_updated;
+
+            IF has_msg_updated THEN
+                INSERT INTO messages (
+                    id, conversation_id, role, content, content_type, created_at, updated_at
+                ) VALUES
+                    (m1_id, c_id, 'assistant', 'Hello! I''m Kanade. How can I help you today?', 'text', now(), now()),
+                    (m2_id, c_id, 'user', 'Thanks! Let''s start.', 'text', now(), now())
+                ON CONFLICT (id) DO NOTHING;
+            ELSE
+                INSERT INTO messages (
+                    id, conversation_id, role, content, content_type, created_at
+                ) VALUES
+                    (m1_id, c_id, 'assistant', 'Hello! I''m Kanade. How can I help you today?', 'text', now()),
+                    (m2_id, c_id, 'user', 'Thanks! Let''s start.', 'text', now())
+                ON CONFLICT (id) DO NOTHING;
+            END IF;
         END $$;
         """
     )

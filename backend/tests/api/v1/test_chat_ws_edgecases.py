@@ -6,8 +6,7 @@ from starlette.testclient import TestClient
 from app.main import app
 from app.core.database import get_async_db
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from app.db.base import Base
-from sqlalchemy import select
+from sqlalchemy import select, text
 from app.models.models import User
 from starlette.websockets import WebSocketDisconnect
 
@@ -20,8 +19,30 @@ def _override_db_factory(test_db_url: str):
         SessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
         if not initialized["done"]:
+            # Alembic upgrade to head (idempotent)
+            from alembic.config import Config as AlembicConfig
+            from alembic import command as alembic_command
+            import pathlib
+            cfg = AlembicConfig(str((pathlib.Path(__file__).resolve().parents[3] / "alembic.ini").resolve()))
+            cfg.set_main_option("sqlalchemy.url", test_db_url.replace("+asyncpg", ""))
+            alembic_command.upgrade(cfg, "head")
+
+            # Truncate all tables except alembic_version
             async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
+                res = await conn.execute(
+                    text(
+                        """
+                        SELECT '"' || table_schema || '"."' || table_name || '"' AS fqname
+                        FROM information_schema.tables
+                        WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name <> 'alembic_version'
+                        ORDER BY 1
+                        """
+                    )
+                )
+                names = [row[0] for row in res.fetchall()]
+                if names:
+                    await conn.execute(text(f"TRUNCATE {', '.join(names)} RESTART IDENTITY CASCADE"))
+
             async with SessionLocal() as s:
                 existing = await s.execute(select(User).limit(1))
                 if existing.scalars().first() is None:

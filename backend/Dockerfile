@@ -1,6 +1,10 @@
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
+# Cache-busting build arg for CI and LABEL to change layer
+ARG CI_BUILD_ID=dev
+LABEL ai-secretary.backend.build_id=${CI_BUILD_ID}
+
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

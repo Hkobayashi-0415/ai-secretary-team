@@ -49,6 +49,15 @@ jobs:
           done
           $DC ps
 
+      # Backend unit tests (pytest + coverage) on DB layer only
+      - name: Run backend unit tests (coverage gate)
+        run: |
+          DC="docker compose -f docker-compose.yml -f docker-compose.ci.yml"
+          $DC run --rm \
+            -e DOCKERIZED=1 \
+            -e TEST_DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary \
+            backend sh -lc "cd /app && pytest --cov=app --cov-report=term-missing --cov-fail-under=75"
+
       # マイグレーション（スキーマ既存なら stamp で整合）
       # DB migration is performed inside backend command before app starts.
       # We avoid running it concurrently from the workflow to prevent races.
@@ -57,9 +66,9 @@ jobs:
       - name: Start app services
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend frontend
 
-      # Extra safety: finalize migrations inside the running backend container
-      - name: Ensure DB schema on running backend
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T backend sh -lc "cd /app && alembic -c alembic.ini upgrade head && alembic -c alembic.ini current"
+      # Observability only: show current Alembic head to avoid concurrent upgrades
+      - name: Show Alembic current on backend
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T backend sh -lc "cd /app && alembic -c alembic.ini current"
 
       # Playwright をコンテナで実行（E2E_BASE_URL=http://frontend）
       - name: Run Playwright tests in container
