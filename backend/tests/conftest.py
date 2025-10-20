@@ -7,13 +7,18 @@ from typing import AsyncGenerator, Generator
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.main import app
 from app.core.database import get_async_db
-from app.models.models import Base, User
+from app.models.models import User
 
-# DOCKERIZED=1 のときは docker ネットワーク上の postgres を使う
+# Alembic for schema management in tests
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
+import pathlib
+
+# DOCKERIZED=1 のときは docker ネットワーク内 postgres を使う
 DEFAULT_URL_DOCKER = "postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary_test"
 DEFAULT_URL_LOCAL  = "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db"
 
@@ -27,17 +32,25 @@ TestingSessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
 
+_ALEMBIC_INI = str((pathlib.Path(__file__).resolve().parent.parent / "alembic.ini").resolve())
+
+def _alembic_upgrade_head(url: str) -> None:
+    cfg = AlembicConfig(_ALEMBIC_INI)
+    cfg.set_main_option("sqlalchemy.url", url.replace("+asyncpg", ""))
+    alembic_command.upgrade(cfg, "head")
+
+
 @pytest.fixture(scope="session")
 def event_loop(request) -> Generator:
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
+
 @pytest.fixture(scope="function")
 async def db() -> AsyncGenerator[AsyncSession, None]:
-    # 拡張を有効化（権限がない環境でも無視して続行）→スキーマ作成
+    # 必要な拡張を有効化
     async with engine.begin() as conn:
-        # 拡張がインストール可能な場合のみ安全に作成する（未提供の環境での失敗を避ける）
         await conn.exec_driver_sql(
             """
             DO $$
@@ -52,10 +65,28 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
             $$;
             """
         )
-        await conn.run_sync(Base.metadata.create_all)
+
+    # Alembic マイグレーションをheadへ（冪等）
+    _alembic_upgrade_head(TEST_DATABASE_URL)
+
+    # すべてのユーザーテーブルを空に（alembic_versionは保持）
+    async with engine.begin() as conn:
+        res = await conn.execute(
+            text(
+                """
+                SELECT '"' || table_schema || '"."' || table_name || '"' AS fqname
+                FROM information_schema.tables
+                WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name <> 'alembic_version'
+                ORDER BY 1
+                """
+            )
+        )
+        names = [row[0] for row in res.fetchall()]
+        if names:
+            await conn.execute(text(f"TRUNCATE {', '.join(names)} RESTART IDENTITY CASCADE"))
 
     async with TestingSessionLocal() as session:
-        # ---- デフォルトユーザーを冪等に投入（テストごとに必要）----
+        # ---- デフォルトユーザーを最低限投入（必要なテストで利用）----
         exists = await session.execute(
             select(User).where(User.email == "admin@example.com")
         )
@@ -74,9 +105,8 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
         # ----------------------------------------------------------
         yield session
 
-    # 後片付け：テーブルドロップ
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # スキーマは保持（次のテストでもAlembic管理）
+
 
 @pytest.fixture(scope="function")
 async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
@@ -89,3 +119,4 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
+

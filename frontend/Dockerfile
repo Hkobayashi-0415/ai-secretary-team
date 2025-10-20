@@ -1,5 +1,8 @@
 # Build stage
 FROM node:20-alpine AS builder
+# Cache-buster for CI: change this to force rebuilds when code/tests change
+ARG FRONTEND_BUILD_ID=dev
+LABEL ai-secretary.frontend.build_id=${FRONTEND_BUILD_ID}
 WORKDIR /app
 
 COPY package*.json ./

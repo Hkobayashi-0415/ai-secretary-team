@@ -155,3 +155,10 @@ test-results/
 repo-*.txt
 repo-tree*.txt
 project_tree*.txt
+
+# Ad-hoc debug artifacts (avoid accidental commits)
+_chatpage_full.txt
+temp_api_ts_view.txt
+e2e-latest.txt
+e2e-run*.txt
+temp_head.txt

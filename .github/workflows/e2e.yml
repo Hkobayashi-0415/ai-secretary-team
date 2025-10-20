@@ -23,9 +23,11 @@ jobs:
       - name: Build images
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build postgres redis
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build --build-arg CI_BUILD_ID=${GITHUB_SHA} backend
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
             --build-arg VITE_API_URL=${VITE_API_URL} frontend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build \
+            --build-arg E2E_VERSION=${GITHUB_SHA} e2e
 
       # まず DB/Redis を起動
       - name: Start database layer
@@ -47,15 +49,26 @@ jobs:
           done
           $DC ps
 
-      # マイグレーション（スキーマ既存なら stamp で整合）
-      - name: Migrate DB (upgrade or stamp)
+      # Backend unit tests (pytest + coverage) on DB layer only
+      - name: Run backend unit tests (coverage gate)
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic upgrade head || \
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm backend alembic stamp head
+          DC="docker compose -f docker-compose.yml -f docker-compose.ci.yml"
+          $DC run --rm \
+            -e DOCKERIZED=1 \
+            -e TEST_DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary \
+            backend sh -lc "cd /app && pytest --cov=app --cov-report=term-missing --cov-fail-under=75"
+
+      # マイグレーション（スキーマ既存なら stamp で整合）
+      # DB migration is performed inside backend command before app starts.
+      # We avoid running it concurrently from the workflow to prevent races.
 
       # アプリ起動（内部ネットワークのみ）
       - name: Start app services
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend frontend
+
+      # Observability only: show current Alembic head to avoid concurrent upgrades
+      - name: Show Alembic current on backend
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T backend sh -lc "cd /app && alembic -c alembic.ini current"
 
       # Playwright をコンテナで実行（E2E_BASE_URL=http://frontend）
       - name: Run Playwright tests in container

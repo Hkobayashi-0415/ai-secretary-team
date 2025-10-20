@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "[entrypoint] waiting for postgres ..."
 ready=0
-for i in {1..30}; do
+for i in {1..60}; do
   if command -v pg_isready >/dev/null 2>&1 && \
      pg_isready -h "${DB_HOST:-postgres}" -U "${DB_USER:-ai_secretary_user}" -d "${DB_NAME:-ai_secretary}" >/dev/null 2>&1; then
     ready=1
@@ -16,12 +16,15 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
-echo "[entrypoint] preparing alembic state"
-(alembic current >/dev/null 2>&1) || alembic stamp head || true
+cd /app
+echo "[entrypoint] ensure alembic version table exists"
+if ! PGPASSWORD="${POSTGRES_PASSWORD:-}" psql -h "${DB_HOST:-postgres}" -U "${DB_USER:-ai_secretary_user}" -d "${DB_NAME:-ai_secretary}" -tAc "select to_regclass('public.alembic_version') is not null" | grep -q t; then
+  echo "[entrypoint] alembic_version missing: stamp base"
+  alembic -c alembic.ini stamp base || true
+fi
 
 echo "[entrypoint] running alembic upgrade head"
-alembic upgrade head
+alembic -c alembic.ini upgrade head
 
 echo "[entrypoint] starting uvicorn"
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000
-
