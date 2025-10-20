@@ -14,8 +14,8 @@
    - 欠損防止のためのチェックリスト作成
 
 2. **バックアップ作成** ✅
-   - docs-backup/
-   - ai-secretary-team-main-docs-backup/
+   - archive/docs-backup/
+   - archive/ai-secretary-team-main-docs-backup/
 
 3. **新ディレクトリ構造の作成** ✅
    - docs/01-foundation/（基礎編）
@@ -127,3 +127,4 @@ Ultrathinkで慎重に分析し、バックアップを取り、段階的に実�
 
 ---
 *本報告書は、Ultrathink深層分析による慎重な実行の記録です。*
+
