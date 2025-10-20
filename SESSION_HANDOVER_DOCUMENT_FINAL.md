@@ -22,8 +22,8 @@
 **緊急復元が必要な場合:**
 ```bash
 # バックアップから復元
-cp -r docs-backup/* docs/
-cp -r ai-secretary-team-main-docs-backup/* ai-secretary-team-main/docs/
+cp -r archive/docs-backup/* docs/
+cp -r archive/ai-secretary-team-main-docs-backup/* ai-secretary-team-main/docs/
 ```
 
 ### ✅ 新しいディレクトリ構造（これが正）
@@ -234,9 +234,9 @@ docs/
 ### 6.1 作成したバックアップ
 ```
 ai-secretary-team/
-├── docs-backup/                    # docsの完全バックアップ
+├── archive/docs-backup/                    # docsの完全バックアップ
 │   └── （48ファイル完全保存）
-├── ai-secretary-team-main-docs-backup/  # プロジェクトdocsバックアップ
+├── archive/ai-secretary-team-main-docs-backup/  # プロジェクトdocsバックアップ
 │   └── （9ファイル完全保存）
 └── work-logs/                      # 作業記録
     ├── 2025-08-16-structure-reorganization.md
@@ -248,12 +248,12 @@ ai-secretary-team/
 ### 6.2 緊急復元手順
 ```bash
 # Step 1: 現状確認
-ls -la docs-backup/
-ls -la ai-secretary-team-main-docs-backup/
+ls -la archive/docs-backup/
+ls -la archive/ai-secretary-team-main-docs-backup/
 
 # Step 2: 復元実行
-cp -r docs-backup/* docs/
-cp -r ai-secretary-team-main-docs-backup/* ai-secretary-team-main/docs/
+cp -r archive/docs-backup/* docs/
+cp -r archive/ai-secretary-team-main-docs-backup/* ai-secretary-team-main/docs/
 
 # Step 3: 検証
 find docs -name "*.md" | wc -l  # 48になるはず
@@ -262,10 +262,10 @@ find docs -name "*.md" | wc -l  # 48になるはず
 ### 6.3 部分復元（特定ファイルのみ）
 ```bash
 # overview/requirements/のみ復元したい場合
-cp -r docs-backup/overview docs/
+cp -r archive/docs-backup/overview docs/
 
 # development-docs/のみ復元したい場合
-cp -r docs-backup/development-docs docs/
+cp -r archive/docs-backup/development-docs docs/
 ```
 
 ---
@@ -418,7 +418,7 @@ Remove-Item -Path 'docs\overview' -Recurse -Force
 5. ⬜ 空READMEの充実
 
 ### 11.2 注意事項
-- **docs-backup/**は検証後に削除可
+- **archive/docs-backup/**は検証後に削除可
 - **新構造を変更する前に本ドキュメントを読む**
 - **削除したoverview/には独自情報があった**
 
@@ -483,3 +483,4 @@ git push origin main
 *最終更新: 2025年8月16日 18:00 JST*
 *文字数: 約8,000字*
 *Ultrathink実行時間: 60分*
+

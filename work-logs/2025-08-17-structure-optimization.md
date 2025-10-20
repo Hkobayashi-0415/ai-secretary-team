@@ -93,7 +93,7 @@ ai-secretary-team/
 
 ## 📝 注意事項
 
-1. **バックアップ**: docs-backup/, ai-secretary-team-main-docs-backup/は一時保存
+1. **バックアップ**: archive/docs-backup/, archive/ai-secretary-team-main-docs-backup/は一時保存
 2. **Git初期化**: まだ最初のコミットが行われていない
 3. **環境変数**: .envファイルの設定が必要
 
@@ -113,3 +113,4 @@ ai-secretary-team/
 *作業時間: 約15分*
 *使用ツール: Bash, Read, Write, TodoWrite*
 *分析手法: ultrathink深層分析*
+

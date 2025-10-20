@@ -75,7 +75,7 @@ ai-secretary-team/                    # プロジェクトルート
 │   │   ├── 03-github-original/      # 参考資料・仕様書
 │   │   ├── 04-templates/            # 標準テンプレート
 │   │   └── 05-archives/             # アーカイブ
-│   └── docs-backup/                 # ドキュメントバックアップ
+│   └── archive/docs-backup/                 # ドキュメントバックアップ
 │
 └── 🛠️ ツール層
     └── tools/
@@ -187,7 +187,7 @@ git push origin main
 
 ## 📝 注意事項
 
-- **バックアップ**: docs-backup/とai-secretary-team-main-docs-backup/は一時保存
+- **バックアップ**: archive/docs-backup/とarchive/ai-secretary-team-main-docs-backup/は一時保存
 - **Git同期**: backend/, frontend/, database/はGitHubと同期
 - **機密情報**: .envファイルは絶対にコミットしない
 - **エージェント**: tools/studio-agents/にContains Studio定義
@@ -202,3 +202,5 @@ git push origin main
 ---
 
 *このドキュメントは、プロジェクト構造の最適化作業（2025年8月17日）を起点に作成され、2025年9月17日に実装状況を反映する更新を行いました。*
+
+

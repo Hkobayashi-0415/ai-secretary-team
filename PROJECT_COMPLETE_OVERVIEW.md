@@ -13,7 +13,7 @@ ai-secretary-team/
 ├── .cursor/                       # Cursor IDE設定
 ├── .claude/                       # Claude設定
 ├── ai_secretary_core/            # AI秘書コア機能
-├── ai-secretary-team-main-docs-backup/  # ドキュメントバックアップ
+├── archive/ai-secretary-team-main-docs-backup/  # ドキュメントバックアップ
 ├── backend/                       # バックエンド（FastAPI）
 ├── frontend/                      # フロントエンド（React + Vite）
 ├── tools/                         # 開発ツール
@@ -1261,3 +1261,5 @@ Module not found: Can't resolve './components/Layout'
 **技術スタック**: FastAPI + React + Vite + PostgreSQL + Redis
 **テスト環境**: pytest + pytest-asyncio + カバレッジ
 **フロントエンド**: React Query + Zod + Axios
+
+

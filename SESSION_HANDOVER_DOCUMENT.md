@@ -15,7 +15,7 @@
 1. **重複ディレクトリ6箇所を特定・削除**（約200MB）
 2. **ドキュメント構造を基礎編・応用編に再編成**（57ファイル→43ファイル）
 3. **GitHubリポジトリとの不整合を解消**
-4. **完全なバックアップを作成**（docs-backup/, ai-secretary-team-main-docs-backup/）
+4. **完全なバックアップを作成**（archive/docs-backup/, archive/ai-secretary-team-main-docs-backup/）
 
 ### 最重要警告
 **削除した`docs/overview/requirements/`には独自の詳細ドキュメントが含まれていました。**
@@ -146,3 +146,5 @@ AI Assistant
 - 現在のターミナルツールの状況は一時的な問題であり、引き継いだ人は正常に使用できる
 - 段階的な整理によるリスクの最小化を推奨
 - 各段階での動作確認を必須とする
+
+
