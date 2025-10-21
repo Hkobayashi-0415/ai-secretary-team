@@ -13,11 +13,9 @@ if config.config_file_name is not None:
 
 # Ensure only app models are imported (never API/services)
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
-
-for path in (PROJECT_ROOT, BASE_DIR):
-    if path not in sys.path:
-        sys.path.insert(0, path)
+APP_ROOT = os.path.abspath(os.path.join(BASE_DIR, "app"))
+if APP_ROOT not in sys.path:
+    sys.path.insert(0, os.path.abspath(os.path.join(BASE_DIR, "..")))
 
 from app.db.base import Base
 import app.models.models          # users / assistants
@@ -52,3 +50,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
