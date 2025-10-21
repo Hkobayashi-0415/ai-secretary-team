@@ -1,4 +1,16 @@
-# AI Secretary Team — DB & Test TODO
+# AI Secretary Team — DB & Test TODO（ステータス更新 2025-10-20）
+
+## 完了
+- AlembicをSSOTに統一し、正規化（013）を適用（conversations/messages/assistant_skills）
+- backend起動時のlembic upgrade headをエントリポイントで強制
+- E2EをCIに統合（Playwright 6/6）
+- UnitをCIに統合し、coverage gate（≥75%）を導入
+- テストDB初期化をAlembic経由で統一（create_all/drop_all排除）
+
+## 次のアクション
+- 旧ENUM message_role の未使用確認とDROP（安全確認後）
+- インデックス/制約の微調整（運用実測に基づく）
+- 本番ロールアウトRunbookの運用反映
 
 ## ✅ 一度だけやる（初期整備）
 

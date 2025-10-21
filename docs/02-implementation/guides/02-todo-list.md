@@ -1,5 +1,19 @@
 # AI秘書チーム・プラットフォーム（統合版）実装TODOリスト v2.0
 
+## ステータス更新（2025-10-20）
+- [x] DBスキーマの正規化（Alembic 013）およびAlembicをSSOTに統一
+- [x] backend起動時の`upgrade head`統一（entrypoint）
+- [x] E2E（Playwright）6/6 安定・CI組み込み
+- [x] Unit（pytest）をCIに組み込み、coverage gate（≥75%）
+- [x] テストDB初期化をAlembic経由に統一（create_all/drop_all排除）
+- [x] 旧ドキュメントを`archive/`配下へ物理移動、参照更新
+
+### 次の重点項目（運用）
+- [ ] 旧ENUM型（`message_role`）の未使用確認とDROP（安全確認後）
+- [ ] インデックス/制約の微調整（運用実測に基づくチューニング）
+- [ ] ブランチ保護のGUI設定反映（Runbookに従い有効化）
+
+
 ## Phase 1: 基盤構築と最初の「一声」（完了）
 
 ### Week 1-3:
