@@ -9,8 +9,19 @@ export type MessagePage = {
   has_more: boolean;
 };
 
-const baseUrl = (import.meta as any).env?.VITE_API_URL || '';
-const apiBase = `${baseUrl}/api/v1`;
+// Normalize API base to avoid "/api/api/..." duplication.
+const rawBase = (import.meta as any).env?.VITE_API_URL || '';
+let trimmed = String(rawBase).replace(/\/$/, '');
+// Normalize common inputs:
+// - "/api/v1" -> "/api"
+// - "/api/v1/" -> "/api"
+trimmed = trimmed.replace(/\/api\/v1$/i, '/api');
+
+// If the env already includes /api, don't append another /api.
+const apiPrefix = trimmed
+  ? (trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`)
+  : '/api';
+const apiBase = `${apiPrefix}/v1`;
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${apiBase}${path}`, {

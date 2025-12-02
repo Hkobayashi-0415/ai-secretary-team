@@ -1,6 +1,6 @@
 # AI秘書チーム・プラットフォーム（統合版）実装TODOリスト v2.0
 
-## ステータス更新（2025-10-20）
+## ステータス更新（2025-10-22）
 - [x] DBスキーマの正規化（Alembic 013）およびAlembicをSSOTに統一
 - [x] backend起動時の`upgrade head`統一（entrypoint）
 - [x] E2E（Playwright）6/6 安定・CI組み込み
@@ -8,6 +8,8 @@
 - [x] テストDB初期化をAlembic経由に統一（create_all/drop_all排除）
 - [x] 旧ドキュメントを`archive/`配下へ物理移動、参照更新
 
+
+- [ ] 新規トピック: Obsidian/career Vault へのクライアント（Gemini経由）の雛形作成
 ### 次の重点項目（運用）
 - [ ] 旧ENUM型（`message_role`）の未使用確認とDROP（安全確認後）
 - [ ] インデックス/制約の微調整（運用実測に基づくチューニング）
@@ -50,6 +52,13 @@
 | P2-T06 | **API:** AI応答を返すエンドポイントを実装 | `backend-architect` | 最高 | 未着手 |
 | P2-T07 | **API:** WebSocket用のエンドポイントを準備 | `backend-architect` | 高 | 未着手 |
 | P2-T08 | **Test:** AI連携部分の基本テストを作成 | `test-writer-fixer` | 高 | 未着手 |
+
+### Week 5 (追加): Obsidian連携Tool Skel（Phase 2 では器のみ）
+| ID | タスク名 | 担当エージェント | 優先度 | ステータス |
+| :--- | :--- | :--- | :--- | :--- |
+| P2-OBS-01 | **Tool:** `tools/career_profile_importer/` の器を作成（Geminiで使うAIModelClient土台） | `ai-engineer` | 最高 | 未着手 |
+| P2-OBS-02 | **Doc:** config雛形の初期設定/Vault path/CLIパスゲートを docs に記載 | `ai-engineer` | 最高 | 未着手 |
+| P2-OBS-03 | **CLI:** config default + インターフェース層の設定値を上書き/記録オプション（最小限） | `ai-engineer` | 高 | 未着手 |
 
 ### Week 6: フロントエンドUIの実装と統合
 | ID | タスク名 | 担当エージェント | 優先度 | ステータス |

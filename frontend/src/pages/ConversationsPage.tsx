@@ -8,7 +8,14 @@ type Conversation = {
   created_at?: string;
 };
 
-const apiBase = (import.meta as any).env?.VITE_API_URL || '';
+// Normalize base to avoid "/api/api/..." when VITE_API_URL already includes "/api"
+const rawBase = (import.meta as any).env?.VITE_API_URL || '';
+let trimmed = String(rawBase).replace(/\/$/, '');
+trimmed = trimmed.replace(/\/api\/v1$/i, '/api');
+const apiPrefix = trimmed
+  ? (trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`)
+  : '/api';
+const apiBase = `${apiPrefix}/v1`;
 
 export default function ConversationsPage() {
   const [items, setItems] = useState<Conversation[]>([]);
@@ -19,7 +26,7 @@ export default function ConversationsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${apiBase}/api/v1/conversations/`);
+        const res = await fetch(`${apiBase}/conversations/`);
         if (!res.ok) throw new Error(String(res.status));
         const data = await res.json();
         setItems(data || []);
