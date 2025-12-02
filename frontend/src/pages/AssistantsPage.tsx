@@ -9,8 +9,14 @@ type Assistant = {
 };
 
 const RAW = (import.meta as any).env.VITE_API_URL || "http://localhost:8000";
-const _trim = String(RAW).replace(/\/$/, "");
-const BASE = _trim.startsWith("http") ? `${_trim}/api/v1` : `${_trim}/v1`;
+let _trim = String(RAW).replace(/\/$/, "");
+// Normalize "/api/v1" -> "/api"
+if (_trim.toLowerCase().endsWith("/api/v1")) {
+  _trim = _trim.slice(0, -3); // drop trailing "/v1"
+}
+const BASE = _trim.startsWith("http")
+  ? (_trim.endsWith("/api") ? `${_trim}/v1` : `${_trim}/api/v1`)
+  : `${_trim}/v1`;
 
 export default function AssistantsPage() {
   const [list, setList] = useState<Assistant[]>([]);

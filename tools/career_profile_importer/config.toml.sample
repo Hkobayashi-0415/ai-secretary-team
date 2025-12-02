@@ -1,0 +1,14 @@
+[defaults]
+vault = "career"
+input_dir = "./input"
+model = "gemini-pro"
+
+[vaults.career]
+path = "C:\\Users\\sugar\\OneDrive\\デスクトップ\\Obsidian"
+projects_subdir = "projects"
+skills_subdir = "skills"
+
+[vaults.code]
+path = "C:\\Users\\sugar\\OneDrive\\デスクトップ\\Obsidian" # 後で別Vaultに差し替え
+projects_subdir = "projects"
+skills_subdir = "skills"

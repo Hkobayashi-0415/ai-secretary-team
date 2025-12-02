@@ -35,6 +35,8 @@ services:
       args:
         BACKEND_BUILD_ID: ${CI_BUILD_ID:-dev}
     environment:
+      - DOCKERIZED=1
+      - TEST_DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
       - DATABASE_URL=postgresql+asyncpg://ai_secretary_user:ai_secretary_password@postgres:5432/ai_secretary
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
@@ -62,7 +64,9 @@ services:
       dockerfile: Dockerfile
       args:
         FRONTEND_BUILD_ID: ${CI_BUILD_ID:-dev}
-    environment: []
+        VITE_API_URL: /api
+    environment:
+      - VITE_API_URL=/api
     depends_on:
       backend:
         condition: service_healthy

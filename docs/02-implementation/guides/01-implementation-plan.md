@@ -46,6 +46,11 @@
     * WebSocketでAIの応答をリアルタイムに表示する処理を実装
     * チャット機能に関する一連のE2E（エンドツーエンド）テストを作成
 
+* **Week 5-6 (追加タスク): Obsidian連携のキャリアインポータ枠**
+    * `tools/career_profile_importer/` に Gemini 固定の AIModelClient スケルトンを追加
+    * config.toml に Vault/サブディレクトリ/モデルのデフォルトを書き、CLI で引数上書き可能にする
+    * Markdown front matter スキーマ（type=project など必須項目）を固定して出力できるようにする
+
 ### 2.3 Phase 3: 認証と管理機能の統合（計画中）
 * JWT認証システムの導入
 * プロジェクトの全体像が把握できるダッシュボードの実装
