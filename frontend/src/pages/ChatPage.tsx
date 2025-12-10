@@ -31,9 +31,21 @@ export default function ChatPage() {
       (async () => {
         try {
           let assistants = [] as any[];
-          try { assistants = await listAssistants(50, 0); } catch {}
+          try {
+            assistants = await listAssistants(50, 0);
+          } catch {}
+          if (!assistants.length) {
+            try {
+              const created = await createAssistant('AutoBot');
+              if (created?.id) {
+                assistants = [created];
+              }
+            } catch (err: any) {
+              setError(err?.message || String(err));
+            }
+          }
           setAssistantOptions(assistants);
-          if (!selectedAssistantId && assistants.length > 0) {
+          if (assistants.length && !selectedAssistantId) {
             setSelectedAssistantId(assistants[0].id);
           }
         } catch {
