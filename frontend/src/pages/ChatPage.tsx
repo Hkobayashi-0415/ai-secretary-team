@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useChatStore } from '../store/chat';
 import type { Msg } from '../store/chat';
-import { listMessagesPaged, getConversation, getAssistant, listAssistants, createConversation } from '../services/api';
+import { listMessagesPaged, getConversation, getAssistant, listAssistants, createConversation, createAssistant } from '../services/api';
 import type { Message as ApiMessage } from '../services/api';
 
 export default function ChatPage() {
