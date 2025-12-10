@@ -225,7 +225,7 @@ export default function ChatPage() {
       const conv = await createConversation(asstId, 'New Conversation');
       if (conv?.id) {
         setResolvedConversationId(conv.id as string);
-        setMessages([]);
+        setMessages([{ id: crypto.randomUUID(), role: 'assistant', content: 'Ready.' } as Msg]);
         window.history.replaceState(null, '', `/chat/${conv.id}`);
       }
     } finally {
@@ -234,6 +234,7 @@ export default function ChatPage() {
   };
 
   if (conversationId === 'new' && !resolvedConversationId) {
+    const effectiveAssistantId = selectedAssistantId || (assistantOptions[0]?.id ?? '');
     return (
       <div className="p-4 max-w-2xl mx-auto space-y-3">
         <div className="font-semibold text-lg">新規チャット</div>
@@ -241,18 +242,17 @@ export default function ChatPage() {
           <div className="font-semibold">アシスタントを選択してください</div>
           <select
             className="border rounded px-2 py-1 w-full"
-            value={selectedAssistantId || ''}
+            value={effectiveAssistantId}
             onChange={(e)=>setSelectedAssistantId(e.target.value || null)}
             data-testid="assistant-select"
           >
-            <option value="" disabled>選択してください</option>
             {assistantOptions.map((a:any) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
           <button
             onClick={startConversation}
-            disabled={!selectedAssistantId || creating}
+            disabled={!effectiveAssistantId || creating}
             className="px-3 py-2 rounded bg-black text-white"
             data-testid="start-chat"
           >
