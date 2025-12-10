@@ -7,7 +7,14 @@ test('conversations -> new -> chat -> send', async ({ page }) => {
   await expect(cta).toBeVisible()
   await cta.click()
 
-  // navigates to /chat/:id (ChatPage handles /chat/new -> /chat/:id)
+  // now at /chat/new -> select assistant and start
+  await expect(page).toHaveURL(/\/chat\/new/, { timeout: 15000 })
+  const select = page.getByTestId('assistant-select')
+  await expect(select).toBeVisible({ timeout: 15000 })
+  await select.selectOption({ index: 0 })
+  await page.getByTestId('start-chat').click()
+
+  // navigates to /chat/:id
   await expect(page).toHaveURL(/\/chat\/.+/, { timeout: 15000 })
 
   // deterministic precondition: ChatPage renders an assistant bubble (fallback 'Ready.' or history)

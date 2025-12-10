@@ -4,14 +4,22 @@ from sqlalchemy.future import select
 import uuid
 from app.core.database import get_async_db
 from app.models.phase2_models import Conversation, Message
-from app.services.llm.mock_llm import stream_mock_reply
+from app.services.llm import stream_reply
 
 router = APIRouter()
 
 # NOTE: api.py mounts this router with prefix="/ws".
 # So the final path becomes: /api/v1/ws/chat
 @router.websocket("/chat")
-async def chat_ws(websocket: WebSocket, conversation_id: uuid.UUID = Query(...), db: AsyncSession = Depends(get_async_db)):
+async def chat_ws(
+    websocket: WebSocket,
+    conversation_id: uuid.UUID = Query(...),
+    model: str | None = Query(None),
+    thinking_level: str | None = Query(None, description="Gemini 3: low/high"),
+    thinking_budget: int | None = Query(None, description="Gemini 2.5: budget tokens"),
+    include_thoughts: bool = Query(False, description="Include thought summaries"),
+    db: AsyncSession = Depends(get_async_db),
+):
     # Validate conversation BEFORE accept so invalid IDs fail connect
     result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
     conv = result.scalars().first()
@@ -34,10 +42,16 @@ async def chat_ws(websocket: WebSocket, conversation_id: uuid.UUID = Query(...),
             db.add(user_msg)
             await db.commit()
 
-            # streaming assistant reply (mock)
+            # streaming assistant reply
             await websocket.send_json({"type":"assistant_start"})
             collected = ""
-            async for token in stream_mock_reply(text):
+            async for token in stream_reply(
+                text,
+                model=model,
+                thinking_level=thinking_level,
+                thinking_budget=thinking_budget,
+                include_thoughts=include_thoughts,
+            ):
                 collected += token
                 await websocket.send_json({"type":"token", "text": token})
             # DB: assistant message

@@ -9,7 +9,7 @@
 - [x] 旧ドキュメントを`archive/`配下へ物理移動、参照更新
 
 
-- [ ] 新規トピック: Obsidian/career Vault へのクライアント（Gemini経由）の雛形作成
+- [x] �V�K�g�s�b�N: Obsidian/career Vault �ւ̃N���C�A���g�iGemini�o�R�j�̐��`�쐬 (done 2025-12-02)
 ### 次の重点項目（運用）
 - [ ] 旧ENUM型（`message_role`）の未使用確認とDROP（安全確認後）
 - [ ] インデックス/制約の微調整（運用実測に基づくチューニング）
@@ -56,9 +56,9 @@
 ### Week 5 (追加): Obsidian連携Tool Skel（Phase 2 では器のみ）
 | ID | タスク名 | 担当エージェント | 優先度 | ステータス |
 | :--- | :--- | :--- | :--- | :--- |
-| P2-OBS-01 | **Tool:** `tools/career_profile_importer/` の器を作成（Geminiで使うAIModelClient土台） | `ai-engineer` | 最高 | 未着手 |
-| P2-OBS-02 | **Doc:** config雛形の初期設定/Vault path/CLIパスゲートを docs に記載 | `ai-engineer` | 最高 | 未着手 |
-| P2-OBS-03 | **CLI:** config default + インターフェース層の設定値を上書き/記録オプション（最小限） | `ai-engineer` | 高 | 未着手 |
+| P2-OBS-01 | **Tool:** `tools/career_profile_importer/` の器作成（Geminiで使うAIModelClient土台） | `ai-engineer` | 最高 | done |
+| P2-OBS-02 | **Doc:** config雛形の初期設定/Vault path/CLIパスゲートを docs に記載 | `ai-engineer` | 最高 | done |
+| P2-OBS-03 | **CLI:** config default + インターフェース層の設定値を上書き/記録オプション（最小限） | `ai-engineer` | 高 | done |
 
 ### Week 6: フロントエンドUIの実装と統合
 | ID | タスク名 | 担当エージェント | 優先度 | ステータス |

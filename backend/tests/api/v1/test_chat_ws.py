@@ -13,7 +13,7 @@ from alembic.config import Config as AlembicConfig
 import pathlib
 
 
-def test_ws_chat_minimal_stream():
+def test_ws_chat_minimal_stream(monkeypatch):
     # Override DB dependency for this TestClient context with a fresh session
     test_db_url = os.getenv(
         "TEST_DATABASE_URL",
@@ -25,6 +25,14 @@ def test_ws_chat_minimal_stream():
     )
 
     initialized = {"done": False}
+    # Force mock LLM for tests to avoid external API calls.
+    os.environ["LLM_PROVIDER"] = "mock"
+    os.environ.pop("GEMINI_API_KEY", None)
+    # Deterministic stream to avoid flakiness
+    async def fake_stream_reply(user_text: str, **kwargs):
+        yield "Hello "
+        yield "world"
+    monkeypatch.setattr("app.api.v1.endpoints.chat.stream_reply", fake_stream_reply)
 
     async def override_get_db():
         # エンジン/セッションはこの依存が呼ばれるイベントループで生成する
