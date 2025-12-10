@@ -8,6 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 # Prefer reproducible ci, but fall back to install when lock got updated by overrides
 RUN npm ci --ignore-scripts || npm install --ignore-scripts
+# Workaround for npm optional dependency bug on musl (rollup native binary)
+RUN npm install --ignore-scripts --no-save @rollup/rollup-linux-x64-musl@4.46.3 || true
 
 # Allow overriding API origin at build time (default: relative '/api')
 ARG VITE_API_URL=/api
