@@ -11,6 +11,9 @@ test('conversations -> new -> chat -> send', async ({ page }) => {
   await expect(page).toHaveURL(/\/chat\/new/, { timeout: 15000 })
   const select = page.getByTestId('assistant-select')
   await expect(select).toBeVisible({ timeout: 15000 })
+  // ensure options are populated (fallback assistant may be created on the fly)
+  const options = select.locator('option')
+  await expect(options).not.toHaveCount(0, { timeout: 15000 })
   await select.selectOption({ index: 0 })
   await page.getByTestId('start-chat').click()
 
