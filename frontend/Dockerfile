@@ -1,5 +1,6 @@
 # Build stage
-FROM node:20-alpine AS builder
+# glibc ベースで rollup の optional binary 問題を回避
+FROM node:20-bullseye AS builder
 # Cache-buster for CI: change this to force rebuilds when code/tests change
 ARG FRONTEND_BUILD_ID=dev
 LABEL ai-secretary.frontend.build_id=${FRONTEND_BUILD_ID}
@@ -8,6 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 # Prefer reproducible ci, but fall back to install when lock got updated by overrides
 RUN npm ci --ignore-scripts || npm install --ignore-scripts
+# Workaround for npm optional dependency bug (ensure rollup native binary on glibc)
+RUN npm install --ignore-scripts --no-save @rollup/rollup-linux-x64-gnu@4.46.3 || true
 
 # Allow overriding API origin at build time (default: relative '/api')
 ARG VITE_API_URL=/api
